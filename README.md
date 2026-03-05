@@ -43,3 +43,9 @@ You might need to run powershell on administator and run this command
 ```bash 
 Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
 ```
+
+### Running Website Locally
+
+```bash
+npm start
+```

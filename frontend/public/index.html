@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang ="en">
+    <!--Should stay untouched, only change would be in Window title-->
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Uni-genda | Student Planner</title>
+        <link rel="stylesheet" href="../src/style.css" />
+    </head>
+    <body>
+        <div id="root"></div>
+
+        <script type="module" src="../src/main.jsx"></script>
+    </body>
+    <!-- <head>
+        
+        <meta charset="UTF-8">
+        <title>Simple Modal Window</title>
+        <style>
+            /* Basic Modal Styles */
+            .modal {
+                display: none;
+                position: fixed;
+                top: 0; left: 0;
+                width: 100%; height: 100%;
+                background-color: rgba(0, 0, 0, 0.5); /*dark overlay*/
+                justify-content: center;
+                align-items: center;
+            }
+
+            .modal-content {
+                background-color: #fefefe;
+                /* margin: 15% auto; */
+                padding: 20px;
+                border-radius: 10px;
+                width: 300px;
+                position: absolute;
+                box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+            }
+            .close {
+                position: absolute;
+                top: 10px;
+                right: 15px;
+                font-size: 20px;
+                font-weight: bold;
+                color: #333;
+                cursor: pointer;
+            }
+            button {
+                padding: 10px 15px;
+                font-size: 16px;
+                cursor: pointer;
+            }
+
+            </style>
+    </head>
+    <body>
+        <button id="openModalBtn">Open Modal</button>
+        <div id = "myModal" class="modal">
+            <div class="modal-content">
+                <span id= "closeModalBtn" class="close">&times;</span>
+                <p>This is a modal window!</p>
+            </div>
+        </div>
+        <script>
+            const modal = document.getElementById('myModal');
+            const openBtn = document.getElementById('openModalBtn');
+            const closeBtn = document.getElementById('closeModalBtn');
+
+            openBtn.addEventListener('click', () => {
+                modal.style.display = 'flex';
+
+            });
+
+            closeBtn.addEventListener('click', () => {
+                modal.style.display = 'none';
+            });
+
+            window.addEventListener('click', (event) => {
+                if (event.target === modal) {
+                    modal.style.display = 'none';
+                }
+            });
+
+        </script>
+    </body> -->
+</html>

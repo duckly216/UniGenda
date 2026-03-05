@@ -25,7 +25,9 @@ yarn-debug.log*
 yarn-error.log*
 
 # Environment files (local configs)
-/.env.*
+.env*
+# Example Environment Files Should NOT be ignored
+!.env.example 
 
 # Dependency directories
 node_modules/
