@@ -38,3 +38,8 @@ cd frontend
 
 npm install
 ```
+#### Note:
+You might need to run powershell on administator and run this command
+```bash 
+Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+```
