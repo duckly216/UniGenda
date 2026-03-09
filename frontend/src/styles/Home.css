@@ -1,3 +1,6 @@
+@import url('https://fonts.googleapis.com/css2?family=Oswald:wght@200..700&family=Instrument+Serif:ital@1&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Oswald:wght@200..700&display=swap');
+
 .home-container {
   display: flex;
   flex-direction: column;
@@ -5,13 +8,16 @@
   justify-content: center;
   height: 100vh;
   font-family: "Oswald", sans-serif;
+  background: linear-gradient(120deg, #e8e0ff, #f3f0ff, #d4c9ff, #ede8ff);
+  background-size: 300% 300%;
+  animation: gradientShift 8s ease infinite;
 }
 
 .home-container h1 {
-  font-size: 4rem;
-  font-weight: 600;
+  font-size: 7rem;
+  font-weight: 700;
   letter-spacing: 0.05em;
-  margin-bottom: 1.5rem;
+  margin-bottom: 0.25rem;
   color: #1a1a2e;
 }
 
@@ -30,4 +36,25 @@
 
 .home-container button:hover {
   background: #6a4ae8;
+}
+
+.tagline {
+  font-size: 1.8rem;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  color: #888;
+  margin-bottom: 2rem;
+}
+
+.tagline em {
+  font-family: 'Instrument Serif', serif;
+  font-style: italic;
+  font-size: 2.1rem;
+  color: #7c5cfc;
+}
+
+@keyframes gradientShift {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
 }

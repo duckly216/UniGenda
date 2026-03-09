@@ -16,6 +16,9 @@ function App() {
             element={
               <div className="home-container">
                 <h1>UniGenda</h1>
+                <p className="tagline">
+                  Getting Things Done <em>Together</em>
+                </p>
                 <Link to="/login">
                   <button>Go to Login</button>
                 </Link>
