@@ -1,7 +1,7 @@
-import React, { use, useState } from 'react';
-import { auth } from '../firebase';
-import { signInWithEmailAndPassword } from 'firebase/auth';
-import { useNavigate } from 'react-router-dom';
+import React, { useState } from "react";
+import { auth } from "../firebase";
+import { signInWithEmailAndPassword } from "firebase/auth";
+import { useNavigate } from "react-router-dom";
 import "../styles/Login.css";
 
 // Login Function: => is basically a "this" binding
@@ -40,14 +40,12 @@ const Login = () => {
           onChange={(e) => setEmail(e.target.value)}
           required
         />
-        <br />
         <input
           type="password"
           placeholder="Password"
           onChange={(e) => setPassword(e.target.value)}
           required
         />
-        <br />
         <button type="submit">Login</button>
       </form>
     </div>

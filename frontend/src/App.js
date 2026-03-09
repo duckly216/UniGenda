@@ -16,7 +16,7 @@ function App() {
                 <div>
                   <h1>Welcome to UniGenda</h1>
                   <Link to="/login">
-                    <button>Got to Login</button>
+                    <button>Go to Login</button>
                   </Link>
                 </div>
               }
