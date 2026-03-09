@@ -4,20 +4,17 @@ import { signInWithEmailAndPassword } from "firebase/auth";
 import { useNavigate } from "react-router-dom";
 import "../styles/Login.css";
 
-// Login Function: => is basically a "this" binding
-const Login = () => {
+const Login = ({ onClose }) => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const navigate = useNavigate();
-
   const handleLogin = async (e) => {
-    e.preventDefault(); //Stops page from refreshing
+    e.preventDefault();
     try {
       await signInWithEmailAndPassword(auth, email, password);
       navigate("/dashboard");
     } catch (err) {
-      // For console logs
       console.log(err.message);
       if (err.code === "auth/invalid-credential") {
         setError("Email or password not valid.");
@@ -28,9 +25,11 @@ const Login = () => {
       }
     }
   };
-
   return (
     <div className="login-container">
+      <button className="close-button" onClick={onClose}>
+        ✕
+      </button>
       <h2>UniGenda Login</h2>
       {error && <p style={{ color: "red" }}>{error}</p>}
       <form onSubmit={handleLogin}>
@@ -51,5 +50,4 @@ const Login = () => {
     </div>
   );
 };
-
 export default Login;

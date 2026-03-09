@@ -1,5 +1,7 @@
 
 .login-container {
+  background: #fff;
+  position: relative;
   padding: 40px;
   max-width: 400px;
   margin: 100px auto;
@@ -27,7 +29,7 @@
   border-color: #7c5cfc;
 }
 
-.login-container button {
+.login-container button:not(.close-button) {
   display: block;
   width: 100%;
   padding: 10px 14px;
@@ -43,6 +45,25 @@
   transition: background 0.2s;
 }
 
-.login-container button:hover {
+.login-container button:not(.close-button):hover {
   background: #6a4ae8;
+}
+
+.close-button {
+  position: absolute;
+  top: 12px;
+  right: 16px;
+  background: none;
+  border: none;
+  font-size: 1.1rem;
+  color: #aaa;
+  cursor: pointer;
+  padding: 0;
+  width: auto;
+  margin: 0;
+  transition: color 0.2s;
+}
+
+.close-button:hover {
+  color: #333;
 }
