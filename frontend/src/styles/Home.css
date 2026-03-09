@@ -1,0 +1,33 @@
+.home-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  font-family: "Oswald", sans-serif;
+}
+
+.home-container h1 {
+  font-size: 4rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  margin-bottom: 1.5rem;
+  color: #1a1a2e;
+}
+
+.home-container button {
+  padding: 12px 32px;
+  background: #7c5cfc;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-family: "Oswald", sans-serif;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.home-container button:hover {
+  background: #6a4ae8;
+}
