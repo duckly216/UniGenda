@@ -6,28 +6,30 @@ import Login from './components/Login';
 
 function App() {
     return (
-    <Router>
-      <div className = "App">
-        <Routes>
+      <Router>
+        <div className="App">
+          <Routes>
             {/*Automatically routes to login page*/}
-            <Route path="/" element={
+            <Route
+              path="/"
+              element={
                 <div>
-                    <h1>Welcome to UniGenda</h1>
-                    <Link to="/login">
-                        <button>Got to Login</button>
-                    </Link>
+                  <h1>Welcome to UniGenda</h1>
+                  <Link to="/login">
+                    <button>Got to Login</button>
+                  </Link>
                 </div>
-                }/> 
-                
-            
+              }
+            />
+
             {/*When URL is /login, render the logic component*/}
             <Route path="/login" element={<Login />} />
 
             {/*When URL is /dashboard, render the logic component*/}
             {/* <Route path="/dashboard" element={<Dashboard />} /> */}
-        </Routes>
-      </div>
-    </Router>
+          </Routes>
+        </div>
+      </Router>
     );    
 }
 export default App;
