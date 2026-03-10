@@ -45,3 +45,6 @@ env/
 # Production build folder
 /frontend/build/
 /backend/__pycache__/
+
+# Firebase service account keys
+backend/src/firebase-key.json
