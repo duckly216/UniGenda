@@ -1,0 +1,13 @@
+{
+  "type": "enter type",
+  "project_id": "enter project id",
+  "private_key_id": "enter private key id",
+  "private_key": "enter private key",
+  "client_email": "enter client email",
+  "client_id": "enter client id",
+  "auth_uri": "enter auth uri",
+  "token_uri": "enter token uri",
+  "auth_provider_x509_cert_url": "enter auth provider cert url",
+  "client_x509_cert_url": "enter client cert url",
+  "universe_domain": "enter universe domain"
+}
