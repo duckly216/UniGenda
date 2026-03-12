@@ -1,23 +1,43 @@
 import React, { useState } from "react";
 import { auth } from "../firebase";
-import { signInWithEmailAndPassword } from "firebase/auth";
-import { useNavigate } from "react-router-dom";
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from "firebase/auth";
+import { useNavigate, Link } from "react-router-dom";
 import "../styles/Login.css";
 
-const Login = ({ onClose }) => {
+const Login = ({mode, onClose }) => { // False means it is login, True means it will be in sign-up
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const navigate = useNavigate();
-  const handleLogin = async (e) => {
+
+  // Determines whether in signup mode on the prop
+  const isSignup = mode === "signup";
+  // Identifies if it is a popup or a separate page
+  const isPopup = mode === "popup";
+
+
+  const handleAuth = async (e) => {
     e.preventDefault();
+
+    setError(""); // Clears errors
+
     try {
-      await signInWithEmailAndPassword(auth, email, password);
+      if(isSignup) {
+        await createUserWithEmailAndPassword(auth, email, password);
+      }
+      else {
+        await signInWithEmailAndPassword(auth, email, password);
+      }
       navigate("/dashboard");
     } catch (err) {
       console.log(err.message);
-      if (err.code === "auth/invalid-credential") {
+      // Might have to specificy if it is also in sign-up mode
+      if (err.code === "auth/email-already-in-use") {
+        setError("This email is already registered. Try logging in.");
+      } else if (err.code === "auth/invalid-credential") {
         setError("Email or password not valid.");
+        } else if (err.code === "auth/weak-password") {
+        setError("Password should be at least 6 characters long");
       } else if (err.code === "auth/user-not-found") {
         setError("We couldn't find an account with that email.");
       } else {
@@ -26,13 +46,16 @@ const Login = ({ onClose }) => {
     }
   };
   return (
-    <div className="login-container">
-      <button className="close-button" onClick={onClose}>
-        ✕
-      </button>
-      <h2>UniGenda Login</h2>
+    <div className={isPopup ?"login-container": "auth-page-layout"}>
+      {/* Dynamic Heading based on mode */}
+      <h2>{isSignup ? "Join UniGenda" : "UniGenda Login"}</h2>
+      {isPopup && (
+        <button className="close-button" onClick={onClose}>
+          ✕
+        </button>
+      )}
       {error && <p style={{ color: "red" }}>{error}</p>}
-      <form onSubmit={handleLogin}>
+      <form onSubmit={handleAuth}>
         <input
           type="email"
           placeholder="Email"
@@ -41,12 +64,28 @@ const Login = ({ onClose }) => {
         />
         <input
           type="password"
-          placeholder="Password"
+          placeholder={isSignup ? "Set your Password" : "Password"}
           onChange={(e) => setPassword(e.target.value)}
           required
         />
-        <button type="submit">Login</button>
+        <button type="submit">{isSignup ? "Sign Up" : "Login"}
+          
+        </button>
       </form>
+      <div className="auth-footer">
+        {isSignup ? (
+          <p>
+            Already have an account? <Link to="/login">Log in!</Link>
+          </p>
+        ) : (
+          <p>
+            Don't have an account? <Link to="/sign_up">Sign up!</Link>
+          </p>
+        )}
+        <p>
+          Back to <Link to="/">Home Page</Link>
+        </p>
+      </div>
     </div>
   );
 };
