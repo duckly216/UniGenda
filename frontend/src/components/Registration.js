@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { auth } from "../firebase";
-import { updateProfile } from "firebase/auth";
+import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
 import { useLocation, useNavigate, Link } from "react-router-dom";
 import "../styles/Registration.css";
 
@@ -40,13 +40,24 @@ const Registration = () => {
     }
 
     try {
-      await updateProfile(auth.currentUser, {
+      const userCredential = await createUserWithEmailAndPassword(
+        auth,
+        email,
+        password,
+      );
+      await updateProfile(userCredential.user, {
         displayName: displayName,
       });
       navigate("/dashboard");
     } catch (err) {
       console.log(err.message);
-      setError("Something went wrong. Please try again later.");
+      if (err.code === "auth/email-already-in-use") {
+        setError("This email is already registered. Try logging in.");
+      } else if (err.code === "auth/weak-password") {
+        setError("Password should be at least 6 characters.");
+      } else {
+        setError("Something went wrong. Please try again later.");
+      }
     }
   };
 

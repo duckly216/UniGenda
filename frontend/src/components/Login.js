@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { auth } from "../firebase";
-import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from "firebase/auth";
+import { signInWithEmailAndPassword} from "firebase/auth";
 import { useNavigate, Link } from "react-router-dom";
 import "../styles/Login.css";
 
@@ -23,7 +23,6 @@ const Login = ({mode, onClose }) => { // False means it is login, True means it 
 
     try {
       if (isSignup) {
-        await createUserWithEmailAndPassword(auth, email, password);
         navigate("/registration", { state: { email, password } });
       } else {
         await signInWithEmailAndPassword(auth, email, password);
