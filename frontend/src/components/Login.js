@@ -1,23 +1,37 @@
 import React, { useState } from "react";
 import { auth } from "../firebase";
-import { signInWithEmailAndPassword } from "firebase/auth";
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from "firebase/auth";
 import { useNavigate } from "react-router-dom";
 import "../styles/Login.css";
 
 const Login = ({ onClose }) => {
+  const [isSignup, setIsSignup] = useState(false); // False means it is login, True means it will be in sign-up
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const navigate = useNavigate();
+
   const handleLogin = async (e) => {
     e.preventDefault();
+
+    setError(""); // Clears errors
+
     try {
-      await signInWithEmailAndPassword(auth, email, password);
+      if(isSignup) {
+        await createUserWithEmailAndPassword(auth, email, password);
+      }
+      else {
+        await signInWithEmailAndPassword(auth, email, password);
+      }
       navigate("/dashboard");
     } catch (err) {
       console.log(err.message);
-      if (err.code === "auth/invalid-credential") {
+      if (err.code === "auth/email-already-in-use") {
+        setError("This email is already registered. Try logging in.");
+      } else if (err.code === "auth/invalid-credential") {
         setError("Email or password not valid.");
+        } else if (err.code === "auth/email-already-in-use") {
+        setError("Password should be at least 6 characters long");
       } else if (err.code === "auth/user-not-found") {
         setError("We couldn't find an account with that email.");
       } else {
@@ -30,7 +44,7 @@ const Login = ({ onClose }) => {
       <button className="close-button" onClick={onClose}>
         ✕
       </button>
-      <h2>UniGenda Login</h2>
+      {/*Tab UI Section*/}
       {error && <p style={{ color: "red" }}>{error}</p>}
       <form onSubmit={handleLogin}>
         <input
