@@ -1,17 +1,20 @@
 import React, { useState } from "react";
 import { auth } from "../firebase";
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from "firebase/auth";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import "../styles/Login.css";
 
-const Login = ({ onClose }) => {
-  const [isSignup, setIsSignup] = useState(false); // False means it is login, True means it will be in sign-up
+const Login = ({mode, onClose }) => { // False means it is login, True means it will be in sign-up
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const navigate = useNavigate();
 
-  const handleLogin = async (e) => {
+  // Determines whether in signup mode on the prop
+  const isSignup = mode === "signup";
+
+
+  const handleAuth = async (e) => {
     e.preventDefault();
 
     setError(""); // Clears errors
@@ -26,11 +29,12 @@ const Login = ({ onClose }) => {
       navigate("/dashboard");
     } catch (err) {
       console.log(err.message);
+      // Might have to specificy if it is also in sign-up mode
       if (err.code === "auth/email-already-in-use") {
         setError("This email is already registered. Try logging in.");
       } else if (err.code === "auth/invalid-credential") {
         setError("Email or password not valid.");
-        } else if (err.code === "auth/email-already-in-use") {
+        } else if (err.code === "auth/weak-password") {
         setError("Password should be at least 6 characters long");
       } else if (err.code === "auth/user-not-found") {
         setError("We couldn't find an account with that email.");
@@ -41,12 +45,11 @@ const Login = ({ onClose }) => {
   };
   return (
     <div className="login-container">
-      <button className="close-button" onClick={onClose}>
-        ✕
-      </button>
-      {/*Tab UI Section*/}
+      {/* Dynamic Heading based on mode */}
+      <h2>{isSignup ? "Join UniGenda" : "UniGenda Login"}</h2>
+      
       {error && <p style={{ color: "red" }}>{error}</p>}
-      <form onSubmit={handleLogin}>
+      <form onSubmit={handleAuth}>
         <input
           type="email"
           placeholder="Email"
@@ -59,7 +62,9 @@ const Login = ({ onClose }) => {
           onChange={(e) => setPassword(e.target.value)}
           required
         />
-        <button type="submit">Login</button>
+        <button type="submit">{isSignup ? "Sign Up" : "Login"}
+          
+        </button>
       </form>
     </div>
   );
