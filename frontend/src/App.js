@@ -31,7 +31,7 @@ function App() {
               </div>
               {showLogin && (
                 <div className="overlay">
-                  <Login onClose={() => setShowLogin(false)} />
+                  <Login mode="popup" onClose={() => setShowLogin(false)} />
                 </div>
               )}
             </>

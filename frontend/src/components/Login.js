@@ -12,6 +12,8 @@ const Login = ({mode, onClose }) => { // False means it is login, True means it 
 
   // Determines whether in signup mode on the prop
   const isSignup = mode === "signup";
+  // Identifies if it is a popup or a separate page
+  const isPopup = mode === "popup";
 
 
   const handleAuth = async (e) => {
@@ -44,10 +46,14 @@ const Login = ({mode, onClose }) => { // False means it is login, True means it 
     }
   };
   return (
-    <div className="login-container">
+    <div className={isPopup ?"login-container": "auth-page-layout"}>
       {/* Dynamic Heading based on mode */}
       <h2>{isSignup ? "Join UniGenda" : "UniGenda Login"}</h2>
-      
+      {isPopup && (
+        <button className="close-button" onClick={onClose}>
+          ✕
+        </button>
+      )}
       {error && <p style={{ color: "red" }}>{error}</p>}
       <form onSubmit={handleAuth}>
         <input
@@ -58,7 +64,7 @@ const Login = ({mode, onClose }) => { // False means it is login, True means it 
         />
         <input
           type="password"
-          placeholder="Password"
+          placeholder={isSignup ? "Set your Password" : "Password"}
           onChange={(e) => setPassword(e.target.value)}
           required
         />
@@ -66,6 +72,20 @@ const Login = ({mode, onClose }) => { // False means it is login, True means it 
           
         </button>
       </form>
+      <div className="auth-footer">
+        {isSignup ? (
+          <p>
+            Already have an account? <Link to="/login">Log in!</Link>
+          </p>
+        ) : (
+          <p>
+            Don't have an account? <Link to="/sign_up">Sign up!</Link>
+          </p>
+        )}
+        <p>
+          Back to <Link to="/">Home Page</Link>
+        </p>
+      </div>
     </div>
   );
 };
