@@ -46,45 +46,45 @@ const Login = ({mode, onClose }) => { // False means it is login, True means it 
     }
   };
   return (
-    <div className={isPopup ?"login-container": "auth-page-layout"}>
-      {/* Dynamic Heading based on mode */}
-      <h2>{isSignup ? "Join UniGenda" : "UniGenda Login"}</h2>
-      {isPopup && (
-        <button className="close-button" onClick={onClose}>
-          ✕
-        </button>
-      )}
-      {error && <p style={{ color: "red" }}>{error}</p>}
-      <form onSubmit={handleAuth}>
-        <input
-          type="email"
-          placeholder="Email"
-          onChange={(e) => setEmail(e.target.value)}
-          required
-        />
-        <input
-          type="password"
-          placeholder={isSignup ? "Set your Password" : "Password"}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-        />
-        <button type="submit">{isSignup ? "Sign Up" : "Login"}
-          
-        </button>
-      </form>
-      <div className="auth-footer">
-        {isSignup ? (
-          <p>
-            Already have an account? <Link to="/login">Log in!</Link>
-          </p>
-        ) : (
-          <p>
-            Don't have an account? <Link to="/sign_up">Sign up!</Link>
-          </p>
+    <div className={isPopup ? "login-container" : "auth-page-wrapper"}>
+      <div className={isPopup ? "" : "auth-page-layout"}>
+        {/* Dynamic Heading based on mode */}
+        <h2>{isSignup ? "Join UniGenda" : "UniGenda Login"}</h2>
+        {isPopup && (
+          <button className="close-button" onClick={onClose}>
+            ✕
+          </button>
         )}
-        <p>
-          Back to <Link to="/">Home Page</Link>
-        </p>
+        {error && <p style={{ color: "red" }}>{error}</p>}
+        <form onSubmit={handleAuth}>
+          <input
+            type="email"
+            placeholder="Email"
+            onChange={(e) => setEmail(e.target.value)}
+            required
+          />
+          <input
+            type="password"
+            placeholder={isSignup ? "Set your Password" : "Password"}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+          />
+          <button type="submit">{isSignup ? "Sign Up" : "Login"}</button>
+        </form>
+        <div className="auth-footer">
+          {isSignup ? (
+            <p>
+              Already have an account? <Link to="/login">Log in!</Link>
+            </p>
+          ) : (
+            <p>
+              Don't have an account? <Link to="/sign_up">Sign up!</Link>
+            </p>
+          )}
+          <p>
+            Back to <Link to="/">Home Page</Link>
+          </p>
+        </div>
       </div>
     </div>
   );
