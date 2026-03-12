@@ -22,13 +22,13 @@ const Login = ({mode, onClose }) => { // False means it is login, True means it 
     setError(""); // Clears errors
 
     try {
-      if(isSignup) {
+      if (isSignup) {
         await createUserWithEmailAndPassword(auth, email, password);
-      }
-      else {
+        navigate("/registration", { state: { email, password } });
+      } else {
         await signInWithEmailAndPassword(auth, email, password);
+        navigate("/dashboard");
       }
-      navigate("/dashboard");
     } catch (err) {
       console.log(err.message);
       // Might have to specificy if it is also in sign-up mode
