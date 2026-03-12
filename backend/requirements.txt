@@ -1,4 +1,5 @@
 flask
 firebase-admin
 pytest
+pytest-mock
 flake8
