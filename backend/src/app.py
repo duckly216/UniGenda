@@ -1,5 +1,5 @@
 from flask import Flask, jsonify
-from firebase_config import db
+from backend.src.firebase_config import db
 
 app = Flask(__name__)
 tasks = db.collection('tasks')

@@ -1,4 +1,3 @@
-
 /* ---------------------------To Be Used for Login Popup Bubble-------------------------- */
 .login-container {
   background: #fff;
@@ -118,6 +117,22 @@
 
 .auth-page-layout button:hover {
   background: #6a4ae8;
+}
+
+.auth-page-wrapper {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(120deg, #e8e0ff, #f3f0ff, #d4c9ff, #ede8ff);
+  background-size: 300% 300%;
+  animation: gradientShift 8s ease infinite;
+}
+
+@keyframes gradientShift {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
 }
 
 /* ---------------------------------------------------------------------------------------- */

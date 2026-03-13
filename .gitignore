@@ -48,3 +48,6 @@ env/
 
 # Firebase service account keys
 backend/src/firebase-key.json
+
+# Python caches
+**/__pycache__/

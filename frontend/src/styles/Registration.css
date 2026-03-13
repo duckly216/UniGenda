@@ -1,0 +1,123 @@
+@import url("https://fonts.googleapis.com/css2?family=Oswald:wght@200..700&family=Instrument+Serif:ital@1&display=swap");
+
+.auth-page-wrapper {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(120deg, #e8e0ff, #f3f0ff, #d4c9ff, #ede8ff);
+  background-size: 300% 300%;
+  animation: gradientShift 8s ease infinite;
+}
+
+@keyframes gradientShift {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.auth-page-layout {
+  background: #fff;
+  position: relative;
+  padding: 40px;
+  width: 100%;
+  max-width: 460px;
+  margin: 40px auto;
+  font-family: "Oswald", sans-serif;
+  border: 1px solid #eee;
+  border-radius: 16px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
+}
+
+.auth-page-layout h2 {
+  margin-bottom: 1.5rem;
+  font-size: 1.8rem;
+  font-weight: 600;
+  color: #1a1a2e;
+}
+
+.auth-page-layout input,
+.auth-page-layout select {
+  display: block;
+  width: 100%;
+  padding: 10px 14px;
+  margin-bottom: 12px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  box-sizing: border-box;
+  font-size: 0.95rem;
+  font-family: "Oswald", sans-serif;
+  outline: none;
+  transition: border-color 0.2s;
+  color: #1a1a2e;
+}
+
+.auth-page-layout input:focus,
+.auth-page-layout select:focus {
+  border-color: #7c5cfc;
+}
+
+.auth-page-layout input::placeholder {
+  color: #aaa;
+}
+
+.auth-page-layout button {
+  display: block;
+  width: 100%;
+  padding: 10px 14px;
+  margin-bottom: 12px;
+  background: #7c5cfc;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-family: "Oswald", sans-serif;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.auth-page-layout button:hover {
+  background: #6a4ae8;
+}
+
+.field-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.error-text {
+  color: red;
+  font-size: 0.82rem;
+  margin-top: -8px;
+  margin-bottom: 8px;
+}
+
+.section-divider {
+  border: none;
+  border-top: 1px solid #eee;
+  margin: 1.25rem 0;
+}
+
+.auth-footer {
+  margin-top: 1rem;
+  font-size: 0.85rem;
+  color: #888;
+  text-align: center;
+}
+
+.auth-footer a {
+  color: #7c5cfc;
+  text-decoration: none;
+}
+
+.auth-footer a:hover {
+  text-decoration: underline;
+}

@@ -31,6 +31,7 @@
   font-family: "Oswald", sans-serif;
   font-weight: 500;
   cursor: pointer;
+  margin-bottom: 12px;
   transition: background 0.2s;
 }
 
