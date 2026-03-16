@@ -3,6 +3,8 @@ import { auth, db } from "../firebase";
 import { doc, getDoc } from "firebase/firestore";
 import { signOut } from "firebase/auth"; //
 import { useNavigate } from "react-router-dom";
+import "../styles/Dashboard.css";
+
 
 const Dashboard = () => {
     const [userData, setUserData] = useState(null);
@@ -38,7 +40,7 @@ const Dashboard = () => {
     return (
         <div className="dashboard-layout">
             {/* 3. Display the unique profile data */}
-            <h1>Welcome, {userData?.displayName || "Student"}!</h1>
+            <h1>Welcome, {userData?.displayName || "Student (No Data)"}!</h1>
             <p>Affiliation: {userData?.school}</p>
             
             <div className="task-preview">
