@@ -38,18 +38,20 @@ const Dashboard = () => {
   };
 
     return (
-        <div className="dashboard-layout">
-            {/* 3. Display the unique profile data */}
-            <h1>Welcome, {userData?.displayName || "Student (No Data)"}!</h1>
-            <p>Affiliation: {userData?.school}</p>
-            
-            <div className="task-preview">
-                {/* This is where your 'tasks' collection will eventually render */}
-                <p>Your UniGenda is loading...</p>
-            </div>
-            <button className="logout-button" onClick={handleLogout}>
-                Logout
-            </button>
+        <div className="dashboard-page-wrapper">
+            <div className="dashboard-layout">   
+                {/* 3. Display the unique profile data */}
+                <h1>Welcome, {userData?.displayName || "Student (No Data)"}!</h1>
+                <p>Affiliation: {userData?.school}</p>
+                
+                <div className="task-preview">
+                    {/* This is where your 'tasks' collection will eventually render */}
+                    <p>Your UniGenda is loading...</p>
+                </div>
+                <button className="logout-button" onClick={handleLogout}>
+                    Logout
+                </button>
+            </div> 
         </div>
     );
 
