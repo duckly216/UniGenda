@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Routes, Route, useNavigate, Navigate } from "react-router-dom";
 import Login from "./components/Login";
 import Registration from "./components/Registration";
+import Dashboard from "./components/Dashboard";
 import "./styles/Home.css";
 // import Dashboard from './components/Dashboard';
 
@@ -39,7 +40,7 @@ function App() {
         <Route path="/sign_up" element={<Login mode="signup" />} />
         <Route path="/registration" element={<Registration />} />
         {/*When URL is /dashboard, render the logic component*/}
-        {/* <Route path="/dashboard" element={<Dashboard />} /> */}
+        <Route path="/dashboard" element={<Dashboard />} />
       </Routes>
     </div>
   );
