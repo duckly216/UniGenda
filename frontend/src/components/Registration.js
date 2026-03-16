@@ -1,6 +1,9 @@
 import React, { useState } from "react";
-import { auth } from "../firebase";
+// Firebase //
 import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
+import { auth, db } from "../firebase"; 
+import { doc, setDoc } from "firebase/firestore";
+// -------- //
 import { useLocation, useNavigate, Link } from "react-router-dom";
 import "../styles/Registration.css";
 
@@ -48,6 +51,16 @@ const Registration = () => {
       await updateProfile(userCredential.user, {
         displayName: displayName,
       });
+      await setDoc(doc(db, "users", userCredential.user.uid), {
+        firstName: firstName,
+        lastName: lastName,
+        displayName: displayName,
+        email: email,
+        phone: phone,
+        school: school,
+        age: parseInt(age),
+        createdAt: new Date()
+      }); 
       navigate("/dashboard");
     } catch (err) {
       console.log(err.message);
