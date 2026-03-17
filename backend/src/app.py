@@ -38,10 +38,22 @@ def add_task():
 # READ
 @app.route('/tasks/<uid>', methods=['GET'])
 def get_user_tasks(uid):
-    # Only fetch tasks where the 'userId' matches the student
-    user_tasks = db.collection('tasks').where('userId', '==', uid).stream()
-    task_list = [task.to_dict() | {"id": task.id} for task in user_tasks]
-    return jsonify(task_list), 200
+    # Default limit of fetching amount is 20
+    limit = request.args.get('limit', default=20, type=int)
+    
+    try: 
+        # Only fetch tasks where the 'userId' matches the student
+        # Order it by dueDate
+        user_tasks = db.collection('tasks') \
+            .where('userId', '==', uid)     \
+            .order_by('dueDate', direction=firestore.Query.ASCENDING)            \
+            .limit(limit)                   \
+            .stream()
+        task_list = [task.to_dict() | {"id": task.id} for task in user_tasks]
+        return jsonify(task_list), 200
+    except Exception as e:
+        # if index has not been created, Firestore returns error
+        return jsonify({"error": str(e)}), 400
 # UPDATE
 @app.route('/tasks/<task_id>', methods=['PATCH'])
 def update_task(task_id):
