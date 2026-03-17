@@ -1,4 +1,5 @@
 from flask import Flask, jsonify, request
+from firebase_admin import firestore
 from backend.src.firebase_config import db
 
 app = Flask(__name__)
