@@ -1,0 +1,55 @@
+/* 1. The Environment: Covers the whole screen with the moving gradient */
+.dashboard-page-wrapper {
+  min-height: 100vh;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(120deg, #e8e0ff, #f3f0ff, #d4c9ff, #ede8ff);
+  background-size: 300% 300%;
+  animation: gradientShift 8s ease infinite;
+}
+
+/* 2. The Interface: The actual white box for your dashboard content */
+.dashboard-layout {
+  background: #fff;
+  position: relative;
+  padding: 40px;
+  width: 100%;
+  max-width: 500px;
+  margin: 40px auto;
+  font-family: "Oswald", sans-serif;
+  border: 1px solid #eee;/* Slightly wider for a dashboard feel */
+  border-radius: 16px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.6);
+  
+}
+
+/* 3. The Logout Button: Override the general purple button style */
+.logout-button {
+    display: block;
+    width: 100%;
+    padding: 10px 14px;
+    margin-top: 20px;
+    margin-bottom: 12px;
+    background-color: #ff4d4d !important; /* Forces the red color over the default purple */
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    font-family: "Oswald", sans-serif;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.logout-button:hover {
+    background-color: #cc0000 !important;
+}
+
+/* Keep your @keyframes as they are */
+@keyframes gradientShift {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
