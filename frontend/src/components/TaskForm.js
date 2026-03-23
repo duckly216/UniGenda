@@ -15,7 +15,7 @@ const TaskForm = ({ onTaskAdded }) => {
         const newTask = {
             title: title,
             dueDate: dueDate,
-            userID: user.uid, // links task to specified user ID
+            userId: user.uid, // links task to specified user ID
             description: "Demo Task" // TO-DO: change after sprint 1 presentation
         };
 
@@ -29,23 +29,23 @@ const TaskForm = ({ onTaskAdded }) => {
         }
     };
     return (
-        <div className="auth-page-layout" style={{ margin: '20px auto', maxWidth: '100%' }}>
-        <h3>Create a New Task</h3>
-        <form onSubmit={handleSubmit}>
-            <input 
-            type="text" 
-            placeholder="Task Title (e.g., Linear Algebra Quiz)" 
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            required 
-            />
-            <input 
-            type="date" 
-            value={dueDate}
-            onChange={(e) => setDueDate(e.target.value)}
-            required 
-            />
-            <button type="submit">Add to UniGenda</button>
+        <div className="auth-page-layout" style={{ margin: '10px auto', maxWidth: '80%' }}>
+            <h3>Create a New Task</h3>
+            <form onSubmit={handleSubmit}>
+                <input 
+                type="text" 
+                placeholder="Task Title (e.g., Linear Algebra Quiz)" 
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                required 
+                />
+                <input 
+                type="date" 
+                value={dueDate}
+                onChange={(e) => setDueDate(e.target.value)}
+                required 
+                />
+                <button type="submit">Add to UniGenda</button>
         </form>
         </div>
     );
