@@ -4,11 +4,14 @@ import { doc, getDoc } from "firebase/firestore";
 import { signOut } from "firebase/auth"; //
 import { useNavigate } from "react-router-dom";
 import "../styles/Dashboard.css";
+import TaskForm from './TaskForm';
+import TaskList from './TaskList';
 
 
 const Dashboard = () => {
     const [userData, setUserData] = useState(null);
     const navigate = useNavigate();
+    const [refresh, setRefresh] = useState(0);
 
     useEffect(()=> {
         const user = auth. currentUser;
@@ -28,14 +31,17 @@ const Dashboard = () => {
 
     }, []);
     const handleLogout = async () => {
-    try {
-      await signOut(auth); // Tells Firebase to end the session
-      console.log("User signed out successfully");
-      navigate("/"); // Redirect back to the home screen
-    } catch (error) {
-      console.error("Error signing out:", error.message);
-    }
-  };
+        try {
+            await signOut(auth); // Tells Firebase to end the session
+            console.log("User signed out successfully");
+            navigate("/"); // Redirect back to the home screen
+        } catch (error) {
+            console.error("Error signing out:", error.message);
+        }
+    };
+    const handleTaskAdded = () => {
+        setRefresh(prev => prev + 1); // Increment to trigger useEffect in TaskList
+    };
 
     return (
         <div className="dashboard-page-wrapper">
@@ -43,11 +49,17 @@ const Dashboard = () => {
                 {/* 3. Display the unique profile data */}
                 <h1>Welcome, {userData?.displayName || "Student (No Data Loaded)"}!</h1>
                 <p>Affiliation: {userData?.school}</p>
+                {/* Input Section */}
+                <TaskForm onTaskAdded={handleTaskAdded} />
                 
-                <div className="task-preview">
-                    {/* This is where the 'tasks' collection will eventually render */}
-                    <p>Your UniGenda is loading...</p>
-                </div>
+                <hr className="section-divider" />
+                
+                {/* Display Section */}
+                <h3>Upcoming Tasks</h3>
+                <TaskList refreshTrigger={refresh} />
+                
+                <hr className="section-divider" />
+                
                 <button className="logout-button" onClick={handleLogout}>
                     Logout
                 </button>
