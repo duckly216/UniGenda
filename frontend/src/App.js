@@ -2,7 +2,9 @@ import React, { useState } from "react";
 import { Routes, Route, useNavigate, Navigate } from "react-router-dom";
 import Login from "./components/Login";
 import Registration from "./components/Registration";
+import Dashboard from "./components/Dashboard";
 import "./styles/Home.css";
+import ProtectedRoute from "./components/ProtectedRoute";
 // import Dashboard from './components/Dashboard';
 
 function App() {
@@ -38,8 +40,14 @@ function App() {
         <Route path="/login" element={<Login mode="login" />} />
         <Route path="/sign_up" element={<Login mode="signup" />} />
         <Route path="/registration" element={<Registration />} />
-        {/*When URL is /dashboard, render the logic component*/}
-        {/* <Route path="/dashboard" element={<Dashboard />} /> */}
+        {/*When URL is /dashboard, render the logic component IF user logged in*/}
+        <Route path="/dashboard" 
+          element={
+            <ProtectedRoute>
+               <Dashboard/>
+            </ProtectedRoute>
+          } 
+        />
       </Routes>
     </div>
   );

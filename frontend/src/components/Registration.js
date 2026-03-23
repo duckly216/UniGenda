@@ -1,6 +1,9 @@
 import React, { useState } from "react";
-import { auth } from "../firebase";
+// Firebase //
 import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
+import { auth, db } from "../firebase"; 
+import { doc, setDoc } from "firebase/firestore";
+// -------- //
 import { useLocation, useNavigate, Link } from "react-router-dom";
 import "../styles/Registration.css";
 
@@ -45,12 +48,26 @@ const Registration = () => {
         email,
         password,
       );
+      const user = userCredential.user;
+      console.log("Step 1: Firebase Auth Account Created with UID:", user.uid);
       await updateProfile(userCredential.user, {
         displayName: displayName,
       });
+      console.log("Step 2: Firebase Auth Profile Updated: (", displayName, ") set");
+      await setDoc(doc(db, "users", userCredential.user.uid), {
+        firstName: firstName,
+        lastName: lastName,
+        displayName: displayName,
+        email: email,
+        phone: phone,
+        school: school,
+        age: parseInt(age),
+        createdAt: new Date()
+      });
+      console.log("Step 3: Firestore Document written to /users collection."); 
       navigate("/dashboard");
     } catch (err) {
-      console.log(err.message);
+      console.error("Registration Error: ", err.message);
       if (err.code === "auth/email-already-in-use") {
         setError("This email is already registered. Try logging in.");
       } else if (err.code === "auth/weak-password") {
