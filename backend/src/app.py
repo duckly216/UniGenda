@@ -1,8 +1,10 @@
 from flask import Flask, jsonify, request
+from flask_cors import CORS
 from firebase_admin import firestore
 from backend.src.firebase_config import db
 
 app = Flask(__name__)
+CORS(app)
 tasks = db.collection('tasks')
 
 @app.route('/')
