@@ -9,6 +9,7 @@ import sys
 sys.modules['firebase_admin'] = MagicMock()
 sys.modules['firebase_admin.credentials'] = MagicMock()
 sys.modules['firebase_admin.firestore'] = MagicMock()
+sys.modules['flask_cors'] = MagicMock()
 
 from backend.src.app import app
 
