@@ -62,7 +62,8 @@ const Registration = () => {
         phone: phone,
         school: school,
         age: parseInt(age),
-        createdAt: new Date()
+        createdAt: new Date(),
+        isAdmin: false,
       });
       console.log("Step 3: Firestore Document written to /users collection."); 
       navigate("/dashboard");
