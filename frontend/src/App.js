@@ -70,6 +70,50 @@ function App() {
             </ProtectedRoute>
           }
         />
+        <Route
+          path="/profile"
+          element={
+            <ProtectedRoute>
+              <div style={{ display: "flex" }}>
+                <NavBar user={auth.currentUser} />
+                <div style={{ marginLeft: "60px", flex: 1 }}></div>
+              </div>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/tasks"
+          element={
+            <ProtectedRoute>
+              <div style={{ display: "flex" }}>
+                <NavBar user={auth.currentUser} />
+                <div style={{ marginLeft: "60px", flex: 1 }}></div>
+              </div>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/moderation"
+          element={
+            <ProtectedRoute>
+              <div style={{ display: "flex" }}>
+                <NavBar user={auth.currentUser} />
+                <div style={{ marginLeft: "60px", flex: 1 }}></div>
+              </div>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/settings"
+          element={
+            <ProtectedRoute>
+              <div style={{ display: "flex" }}>
+                <NavBar user={auth.currentUser} />
+                <div style={{ marginLeft: "60px", flex: 1 }}></div>
+              </div>
+            </ProtectedRoute>
+          }
+        />
       </Routes>
     </div>
   );
