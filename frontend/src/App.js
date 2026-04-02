@@ -5,6 +5,7 @@ import Login from "./components/Login";
 import Registration from "./components/Registration";
 import Dashboard from "./components/Dashboard";
 import NavBar from "./components/NavBar";
+import Calendar from "./components/Calendar";
 import "./styles/Home.css";
 import ProtectedRoute from "./components/ProtectedRoute";
 // import Dashboard from './components/Dashboard';
@@ -51,6 +52,19 @@ function App() {
                 <NavBar user={auth.currentUser} />
                 <div style={{ marginLeft: "60px", flex: 1 }}>
                   <Dashboard />
+                </div>
+              </div>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/calendar"
+          element={
+            <ProtectedRoute>
+              <div style={{ display: "flex" }}>
+                <NavBar user={auth.currentUser} />
+                <div style={{ marginLeft: "60px", flex: 1 }}>
+                  <Calendar />
                 </div>
               </div>
             </ProtectedRoute>

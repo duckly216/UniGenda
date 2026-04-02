@@ -4,7 +4,7 @@ import "../styles/NavBar.css";
 
 const NAV_ITEMS = [
   { icon: "👤", label: "Profile", path: "/profile", group: "top" },
-  { icon: "🏠", label: "Home", path: "/", group: "main" },
+  { icon: "🏠", label: "Home", path: "/dashboard", group: "main" },
   { icon: "✅", label: "My Tasks", path: "/tasks", group: "main" },
   { icon: "📅", label: "Calendar", path: "/calendar", group: "main" },
   { icon: "🛡️", label: "Moderation", path: "/moderation", group: "main" },
