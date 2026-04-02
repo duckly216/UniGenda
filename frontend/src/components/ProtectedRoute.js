@@ -1,16 +1,32 @@
-// This component is intended to protect certain routes from being accessed without login //
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
-import { auth } from "../firebase";
+import { auth, db } from "../firebase";
+import { doc, getDoc } from "firebase/firestore";
 
-const ProtectedRoute = ({ children }) => {
-    const user = auth.currentUser;
+const ProtectedRoute = ({ children, adminOnly = false }) => {
+  const user = auth.currentUser;
+  const [isAdmin, setIsAdmin] = useState(null);
 
-    if(!user){
-        // If user isn't logged in, takes them to login page
-        return <Navigate to="/login" />;
+  //fetches admin status of user with userId
+  useEffect(() => {
+    if (!adminOnly || !user) {
+      return;
     }
-    return children;
+    getDoc(doc(db, "users", user.uid)).then((snap) => {
+      setIsAdmin(snap.exists() && snap.data()?.isAdmin === true);
+    });
+  }, [adminOnly, user]);
+
+  if (!user) {
+    return <Navigate to="/login" />;
+  }
+  if (adminOnly && isAdmin === null) {
+    return null;
+  }
+  if (adminOnly && !isAdmin) {
+    return <Navigate to="/dashboard" />;
+  }
+  return children;
 };
 
-export default ProtectedRoute
+export default ProtectedRoute;

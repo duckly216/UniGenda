@@ -95,7 +95,7 @@ function App() {
         <Route
           path="/moderation"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute adminOnly={true}>
               <div style={{ display: "flex" }}>
                 <NavBar user={auth.currentUser} />
                 <div style={{ marginLeft: "60px", flex: 1 }}></div>
