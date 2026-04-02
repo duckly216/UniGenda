@@ -1,0 +1,125 @@
+@import url("https://fonts.googleapis.com/css2?family=Oswald:wght@200..700&display=swap");
+
+.calendar {
+  font-family: "Oswald", sans-serif;
+  max-width: 900px;
+  margin: 40px auto;
+  padding: 24px;
+  background: #fff;
+  border-radius: 16px;
+  border: 1px solid #eee;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
+}
+
+.calendar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+}
+
+.calendar-title {
+  font-size: 1.6rem;
+  font-weight: 600;
+  color: #1a1a2e;
+  letter-spacing: 0.03em;
+}
+
+.cal-arrow {
+  background: none;
+  border: none;
+  font-size: 1.8rem;
+  color: #7c5cfc;
+  cursor: pointer;
+  padding: 0 12px;
+  transition: color 0.2s;
+  line-height: 1;
+}
+
+.cal-arrow:hover {
+  color: #6a4ae8;
+}
+
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+}
+
+.calendar-dow {
+  text-align: center;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #aaa;
+  letter-spacing: 0.06em;
+  padding-bottom: 8px;
+}
+
+.calendar-cell {
+  min-height: 80px;
+  padding: 6px;
+  border-radius: 8px;
+  border: 1px solid #f0f0f0;
+  background: #fafafa;
+  vertical-align: top;
+}
+
+.calendar-cell.empty {
+  background: none;
+  border: none;
+}
+
+.calendar-cell.today {
+  border-color: #7c5cfc;
+  background: #f3f0ff;
+}
+
+.calendar-day-number {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #1a1a2e;
+  display: block;
+  margin-bottom: 4px;
+}
+
+.calendar-cell.today .calendar-day-number {
+  color: #7c5cfc;
+  font-weight: 700;
+}
+
+.calendar-tasks {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.calendar-task-pill {
+  background: #7c5cfc;
+  color: #fff;
+  font-size: 0.7rem;
+  padding: 2px 6px;
+  border-radius: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.calendar-page {
+  min-height: 100vh;
+  background: linear-gradient(120deg, #e8e0ff, #f3f0ff, #d4c9ff, #ede8ff);
+  background-size: 300% 300%;
+  animation: gradientShift 8s ease infinite;
+  padding: 20px;
+}
+
+@keyframes gradientShift {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
