@@ -30,8 +30,18 @@ const TaskList = ({ refreshTrigger }) => {
         tasks.map(task => (
           <div key={task.id} className="task-item">
             <h4>{task.title}</h4>
-            <p>{task.description}</p>
+            <p>{task.description || ""}</p>
             <small>Due: {task.dueDate}</small>
+            <br />
+            <small>
+              Priority: {task.priority || 'medium'} • Visibility: {(task.isPublic || task.visibility === 'public') ? 'Public' : 'Private'}
+            </small>
+            {Array.isArray(task.tags) && task.tags.length > 0 && (
+              <>
+                <br />
+                <small>Tags: {task.tags.join(', ')}</small>
+              </>
+            )}
           </div>
         ))
       ) : (
