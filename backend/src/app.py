@@ -27,11 +27,27 @@ def get_tasks():
 @app.route('/tasks', methods=['POST'])
 def add_task():
     data = request.json
+
+    raw_tags = data.get('tags', [])
+    if isinstance(raw_tags, str):
+        tags = [tag.strip() for tag in raw_tags.split(',') if tag.strip()]
+    elif isinstance(raw_tags, list):
+        tags = [str(tag).strip() for tag in raw_tags if str(tag).strip()]
+    else:
+        tags = []
+
+    visibility = data.get('visibility', 'private')
+    is_public = bool(data.get('isPublic', visibility == 'public'))
+
     new_task = {
         "title": data.get('title'),
         "description": data.get('description'),
         "dueDate": data.get("dueDate"),
         "userId": data.get("userId"), # The student's User ID from Auth
+        "priority": data.get("priority", "medium"),
+        "visibility": "public" if is_public else "private",
+        "isPublic": is_public,
+        "tags": tags,
         "status": "pending",
         "createdAt": firestore.SERVER_TIMESTAMP
     }
