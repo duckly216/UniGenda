@@ -1,0 +1,9 @@
+{
+  "name": "unigenda-backend",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "start": "python src/app.py",
+    "dev": "python src/app.py"
+  }
+}
