@@ -4,7 +4,7 @@ import { doc, getDoc } from "firebase/firestore";
 import { onAuthStateChanged, signOut } from "firebase/auth"; //
 import { useNavigate } from "react-router-dom";
 import "../styles/Dashboard.css";
-import TaskForm from './TaskForm';
+import TaskForm from './task-components/TaskForm';
 import TaskList from './TaskList';
 
 
