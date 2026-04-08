@@ -1,6 +1,6 @@
 import React, { useState } from 'react'; 
 import axios from 'axios'; // allows React front-end to interact with the back-end
-import { auth } from '../firebase';
+import { auth } from '../../firebase';
 
 const TaskForm = ({ onTaskAdded }) => {
     const [title, setTitle]      = useState('');
