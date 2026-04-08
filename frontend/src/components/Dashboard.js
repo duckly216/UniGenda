@@ -1,7 +1,7 @@
 import React, {useEffect, useState } from "react";
 import { auth, db } from "../firebase"; 
 import { doc, getDoc } from "firebase/firestore";
-import { signOut } from "firebase/auth"; //
+import { onAuthStateChanged, signOut } from "firebase/auth"; //
 import { useNavigate } from "react-router-dom";
 import "../styles/Dashboard.css";
 import TaskForm from './TaskForm';
@@ -14,21 +14,29 @@ const Dashboard = () => {
     const [refresh, setRefresh] = useState(0);
 
     useEffect(()=> {
-        const user = auth. currentUser;
+        const unsubscribe = onAuthStateChanged(auth, async (user) => {
+            if (!user) {
+                setUserData(null);
+                return;
+            }
 
-        if(user){
-            // Maps UserID to Firestore document
-            const fetchProfile = async() => {
+            try {
+                // Maps UserID to Firestore document
                 const docRef = doc(db, "users", user.uid);
                 const docSnap = await getDoc(docRef);
 
                 if(docSnap.exists()){
                     setUserData(docSnap.data());
+                } else {
+                    setUserData(null);
                 }
-            };
-            fetchProfile();
-        }
+            } catch (error) {
+                console.error("Error loading user profile:", error);
+                setUserData(null);
+            }
+        });
 
+        return () => unsubscribe();
     }, []);
     const handleLogout = async () => {
         try {

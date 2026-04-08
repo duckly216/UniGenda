@@ -1,28 +1,43 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { auth } from '../firebase';
+import { onAuthStateChanged } from 'firebase/auth';
 
 const TaskList = ({ refreshTrigger }) => {
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [uid, setUid] = useState(null);
 
   useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      setUid(user?.uid || null);
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    if (!uid) {
+      setTasks([]);
+      setLoading(false);
+      return;
+    }
+
     const fetchTasks = async () => {
-      const user = auth.currentUser;
-      if (user) {
-        try {
-          // Fetching sorted/limited tasks from your Flask API
-          const response = await axios.get(`http://127.0.0.1:5000/tasks/${user.uid}?limit=10`);
-          setTasks(response.data);
-        } catch (err) {
-          console.error("Error fetching tasks:", err);
-        } finally {
-          setLoading(false); // Stop loading regardless of success/fail
-        }
+      try {
+        // Fetching sorted/limited tasks from your Flask API
+        const response = await axios.get(`http://127.0.0.1:5000/tasks/${uid}?limit=10`);
+        setTasks(Array.isArray(response.data) ? response.data : []);
+      } catch (err) {
+        console.error("Error fetching tasks:", err);
+      } finally {
+        setLoading(false); // Stop loading regardless of success/fail
       }
     };
+
+    setLoading(true);
     fetchTasks();
-  }, [refreshTrigger]); // Refetches when a task is added
+  }, [uid, refreshTrigger]); // Refetches when auth/task state changes
 
   return (
     <div className="task-list">
