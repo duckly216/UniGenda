@@ -50,16 +50,24 @@ def test_db():
     db.collection('users').document('test-user').collection('tasks').add({"task": "Test task"})
     return {"message": "Task added"}
 
-@app.route('/public_tasks')
-def get_public_tasks():
-    task_list = []
-    for task in public_tasks.stream():
-        task_list.append(task.to_dict() | {"id": task.id})
-    return jsonify(task_list)
-## -- CRUD Operations -- ##
+
+
+## -- CRUD Operations for Profiles -- ##
+@app.route('/users/<uid>', methods=['GET'])
+def get_user_profile(uid):
+    try:
+        user_doc = db.collection('users').document(uid).get()
+        if not user_doc.exists:
+            return jsonify({"error": "Profile not found"}), 404
+
+        profile = user_doc.to_dict() or {}
+        return jsonify(profile), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 400
+## -- CRUD Operations for Tasks -- ##
 # CREATE
-@app.route('/tasks', methods=['POST'])
-def add_task():
+@app.route('/users/<uid>/tasks', methods=['POST'])
+def add_task(uid):
     data = parse_payload()
 
     if not isinstance(data, dict):
@@ -102,49 +110,9 @@ def add_task():
     return jsonify({"id": task_id, "message": "Task created"}), 201
 
 # Might have to 
-@app.route('/public_tasks', methods=['POST'])
-def add_public_task():
-    data = parse_payload()
 
-    if not isinstance(data, dict):
-        return jsonify({"error": "Invalid or missing request body. Send JSON with Content-Type: application/json."}), 400
-
-    data['visibility'] = 'public'
-    data['isPublic'] = True
-
-    tags = normalize_tags(data.get('tags', []))
-    user_id = data.get("userId")
-
-    if not user_id:
-        return jsonify({"error": "userId is required"}), 400
-    if not data.get('title'):
-        return jsonify({"error": "title is required"}), 400
-
-    new_task = {
-        "title": data.get('title'),
-        "description": data.get('description'),
-        "dueDate": data.get("dueDate"),
-        "userId": user_id,
-        "priority": data.get("priority", "medium"),
-        "visibility": "public",
-        "isPublic": True,
-        "tags": tags,
-        "status": "pending",
-        "createdAt": firestore.SERVER_TIMESTAMP
-    }
-
-    user_ref = db.collection('users').document(user_id)
-    user_ref.set({"updatedAt": firestore.SERVER_TIMESTAMP}, merge=True)
-
-    task_ref = user_ref.collection('tasks').document()
-    task_id = task_ref.id
-    task_ref.set(new_task)
-
-    public_tasks.document(task_id).set(new_task)
-
-    return jsonify({"id": task_id, "message": "Public task created"}), 201
 # READ
-@app.route('/tasks/<uid>', methods=['GET'])
+@app.route('/users/<uid>/tasks', methods=['GET'])
 def get_user_tasks(uid):
     # Default limit of fetching amount is 20
     limit = request.args.get('limit', default=20, type=int)
@@ -164,8 +132,8 @@ def get_user_tasks(uid):
         # if index has not been created, Firestore returns error
         return jsonify({"error": str(e)}), 400
 # UPDATE
-@app.route('/tasks/<task_id>', methods=['PATCH'])
-def update_task(task_id):
+@app.route('/users/<uid>/tasks/<task_id>', methods=['PATCH'])
+def update_task(uid, task_id):
     data = parse_payload()
     if not isinstance(data, dict):
         return jsonify({"error": "Invalid or missing request body."}), 400
@@ -209,7 +177,7 @@ def update_task(task_id):
 
     return jsonify({"message": "Task updated"}), 200
 # DELETE
-@app.route('/tasks/<task_id>', methods=['DELETE'])
+@app.route('/users/<uid>/tasks', methods=['DELETE'])
 def delete_task(task_id):
     user_id = request.args.get("userId")
     if not user_id:
@@ -221,8 +189,48 @@ def delete_task(task_id):
     public_tasks.document(task_id).delete()
 
     return jsonify({"message": "Task deleted"}), 200
+## -- Public Tasks -- ##
+@app.route('/public_tasks', methods=['POST'])
+def add_public_task():
+    data = parse_payload()
 
+    if not isinstance(data, dict):
+        return jsonify({"error": "Invalid or missing request body. Send JSON with Content-Type: application/json."}), 400
 
+    data['visibility'] = 'public'
+    data['isPublic'] = True
+
+    tags = normalize_tags(data.get('tags', []))
+    user_id = data.get("userId")
+
+    if not user_id:
+        return jsonify({"error": "userId is required"}), 400
+    if not data.get('title'):
+        return jsonify({"error": "title is required"}), 400
+
+    new_task = {
+        "title": data.get('title'),
+        "description": data.get('description'),
+        "dueDate": data.get("dueDate"),
+        "userId": user_id,
+        "priority": data.get("priority", "medium"),
+        "visibility": "public",
+        "isPublic": True,
+        "tags": tags,
+        "status": "pending",
+        "createdAt": firestore.SERVER_TIMESTAMP
+    }
+
+    user_ref = db.collection('users').document(user_id)
+    user_ref.set({"updatedAt": firestore.SERVER_TIMESTAMP}, merge=True)
+
+    task_ref = user_ref.collection('tasks').document()
+    task_id = task_ref.id
+    task_ref.set(new_task)
+
+    public_tasks.document(task_id).set(new_task)
+
+    return jsonify({"id": task_id, "message": "Public task created"}), 201
 @app.route('/public_tasks/<task_id>', methods=['PATCH'])
 def update_public_task(task_id):
     data = parse_payload()
@@ -267,6 +275,12 @@ def update_public_task(task_id):
     public_tasks.document(task_id).set(updated_task)
     return jsonify({"message": "Public task updated"}), 200
 
+@app.route('/public_tasks')
+def get_public_tasks():
+    task_list = []
+    for task in public_tasks.stream():
+        task_list.append(task.to_dict() | {"id": task.id})
+    return jsonify(task_list)
 
 @app.route('/public_tasks/<task_id>', methods=['DELETE'])
 def delete_public_task(task_id):

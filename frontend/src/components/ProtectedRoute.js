@@ -12,9 +12,18 @@ const ProtectedRoute = ({ children, adminOnly = false }) => {
     if (!adminOnly || !user) {
       return;
     }
-    getDoc(doc(db, "users", user.uid)).then((snap) => {
-      setIsAdmin(snap.exists() && snap.data()?.isAdmin === true);
-    });
+
+    const checkAdmin = async () => {
+      try {
+        const snap = await getDoc(doc(db, "users", user.uid));
+        setIsAdmin(snap.exists() && snap.data()?.isAdmin === true);
+      } catch (error) {
+        console.error("Error checking admin status:", error);
+        setIsAdmin(false);
+      }
+    };
+
+    checkAdmin();
   }, [adminOnly, user]);
 
   if (!user) {

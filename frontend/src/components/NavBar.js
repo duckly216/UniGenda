@@ -28,9 +28,18 @@ const NavBar = ({ user }) => {
     if (!user?.uid) {
       return;
     }
-    getDoc(doc(db, "users", user.uid)).then((snap) => {
-      setIsAdmin(snap.exists() && snap.data()?.isAdmin === true);
-    });
+
+    const fetchRole = async () => {
+      try {
+        const snap = await getDoc(doc(db, "users", user.uid));
+        setIsAdmin(snap.exists() && snap.data()?.isAdmin === true);
+      } catch (error) {
+        console.error("Error loading user role:", error);
+        setIsAdmin(false);
+      }
+    };
+
+    fetchRole();
   }, [user?.uid]);
 
   const visibleItems = (group) =>

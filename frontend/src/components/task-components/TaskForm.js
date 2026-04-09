@@ -33,7 +33,7 @@ const TaskForm = ({ onTaskAdded }) => {
         };
 
         try{
-            await axios.post('http://127.0.0.1:5000/tasks', newTask);
+            await axios.post(`http://127.0.0.1:5000/users/${user.uid}/tasks`, newTask);
             setTitle("");
             setDueDate("");
             setPriority('medium');
