@@ -4,7 +4,7 @@ import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
 import { auth, db } from "../firebase"; 
 import { doc, setDoc } from "firebase/firestore";
 // -------- //
-import { useLocation, useNavigate, Link } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import "../styles/Registration.css";
 
 const Registration = () => {
@@ -144,11 +144,6 @@ const Registration = () => {
           <hr className="section-divider" />
           <button type="submit">Complete Registration</button>
         </form>
-        <div className="auth-footer">
-          <p>
-            Back to <Link to="/">Home Page</Link>
-          </p>
-        </div>
       </div>
     </div>
   );

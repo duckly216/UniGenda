@@ -1,34 +1,38 @@
 import React, {useEffect, useState } from "react";
-import { auth, db } from "../firebase"; 
-import { doc, getDoc } from "firebase/firestore";
-import { signOut } from "firebase/auth"; //
+import axios from "axios";
+import { auth } from "../firebase"; 
+import { onAuthStateChanged, signOut } from "firebase/auth"; //
 import { useNavigate } from "react-router-dom";
 import "../styles/Dashboard.css";
-import TaskForm from './TaskForm';
+import TaskForm from './task-components/TaskForm';
 import TaskList from './TaskList';
 
 
 const Dashboard = () => {
     const [userData, setUserData] = useState(null);
+    const [authUser, setAuthUser] = useState(null);
     const navigate = useNavigate();
     const [refresh, setRefresh] = useState(0);
 
     useEffect(()=> {
-        const user = auth. currentUser;
+        const unsubscribe = onAuthStateChanged(auth, async (user) => {
+            setAuthUser(user);
 
-        if(user){
-            // Maps UserID to Firestore document
-            const fetchProfile = async() => {
-                const docRef = doc(db, "users", user.uid);
-                const docSnap = await getDoc(docRef);
+            if (!user) {
+                setUserData(null);
+                return;
+            }
 
-                if(docSnap.exists()){
-                    setUserData(docSnap.data());
-                }
-            };
-            fetchProfile();
-        }
+            try {
+                const response = await axios.get(`http://127.0.0.1:5000/users/${user.uid}`);
+                setUserData(response.data || null);
+            } catch (error) {
+                console.error("Error loading user profile:", error);
+                setUserData(null);
+            }
+        });
 
+        return () => unsubscribe();
     }, []);
     const handleLogout = async () => {
         try {
@@ -43,19 +47,33 @@ const Dashboard = () => {
         setRefresh(prev => prev + 1); // Increment to trigger useEffect in TaskList
     };
 
+    const welcomeName =
+        userData?.displayName ||
+        userData?.firstName ||
+        authUser?.displayName ||
+        authUser?.email?.split('@')[0] ||
+        "Student (Name not loaded)";
+
+    const affiliationLabel =
+        userData?.school === "UF"
+            ? "University of Florida"
+            : userData?.school === "SF"
+                ? "Santa Fe College"
+                : userData?.school;
+    
     return (
         <div className="dashboard-page-wrapper">
             <div className="dashboard-layout">   
                 {/* 3. Display the unique profile data */}
-                <h1>Welcome, {userData?.displayName || "Student (No Data Loaded)"}!</h1>
-                <p>Affiliation: {userData?.school}</p>
+                <h1>Welcome, {welcomeName}!</h1>
+                <p>Affiliation: {affiliationLabel || "School not loaded"}</p>
                 {/* Input Section */}
                 <TaskForm onTaskAdded={handleTaskAdded} />
                 
                 <hr className="section-divider" />
                 
                 {/* Display Section */}
-                <h3>Upcoming Tasks</h3>
+                <h3>Tasks</h3>
                 <TaskList refreshTrigger={refresh} />
                 
                 <hr className="section-divider" />

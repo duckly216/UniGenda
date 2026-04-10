@@ -80,9 +80,11 @@ const Login = ({mode, onClose }) => { // False means it is login, True means it 
               Don't have an account? <Link to="/sign_up">Sign up!</Link>
             </p>
           )}
-          <p>
-            Back to <Link to="/">Home Page</Link>
-          </p>
+          {!isPopup && (
+            <p>
+              Back to <Link to="/">Home Page</Link>
+            </p>
+          )}
         </div>
       </div>
     </div>
