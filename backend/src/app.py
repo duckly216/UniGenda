@@ -1,7 +1,9 @@
 import json
+from functools import wraps
 
-from flask import Flask, jsonify, request
+from flask import Flask, g, jsonify, request
 from flask_cors import CORS
+from firebase_admin import auth as firebase_auth
 from firebase_admin import firestore
 from firebase_config import db
 
@@ -40,6 +42,46 @@ def sync_public_task(task_id, task_data):
 
 def get_user_task_ref(user_id, task_id):
     return db.collection('users').document(user_id).collection('tasks').document(task_id)
+
+
+def get_authenticated_uid():
+    current_user = getattr(g, "current_user", None)
+    if isinstance(current_user, dict):
+        return current_user.get("uid")
+    return None
+
+
+def require_auth(view_func):
+    @wraps(view_func)
+    def wrapped(*args, **kwargs):
+        auth_header = request.headers.get("Authorization", "")
+        if not auth_header.startswith("Bearer "):
+            return jsonify({"error": "Missing or invalid authorization token"}), 401
+
+        id_token = auth_header.split("Bearer ", 1)[1].strip()
+
+        try:
+            g.current_user = firebase_auth.verify_id_token(id_token)
+        except Exception:
+            return jsonify({"error": "Unauthorized"}), 401
+
+        return view_func(*args, **kwargs)
+
+    return wrapped
+
+def get_owned_task_ref(task_id):
+    task_ref = db.collection('tasks').document(task_id)
+    task_snapshot = task_ref.get()
+
+    if not getattr(task_snapshot, "exists", False):
+        return None, (jsonify({"error": "Task not found"}), 404)
+
+    task_data = task_snapshot.to_dict() or {}
+    authenticated_uid = get_authenticated_uid()
+    if authenticated_uid and task_data.get("userId") != authenticated_uid:
+        return None, (jsonify({"error": "Forbidden"}), 403)
+
+    return task_ref, None
 
 @app.route('/')
 def home():
@@ -116,8 +158,12 @@ def add_task(uid):
 def get_user_tasks(uid):
     # Default limit of fetching amount is 20
     limit = request.args.get('limit', default=20, type=int)
-    
-    try: 
+    authenticated_uid = get_authenticated_uid()
+
+    if authenticated_uid and uid != authenticated_uid:
+        return jsonify({"error": "Forbidden"}), 403
+
+    try:
         # User-scoped tasks collection
         scoped_tasks = db.collection('users') \
             .document(uid) \
