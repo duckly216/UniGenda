@@ -51,3 +51,6 @@ backend/src/firebase-key.json
 
 # Python caches
 **/__pycache__/
+
+# MacOS system files
+.DS_Store
