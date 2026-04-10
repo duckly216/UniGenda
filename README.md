@@ -56,6 +56,15 @@ Install dependencies:
 pip install -r requirements.txt
 ```
 
+If you see `failed to locate pyvenv.cfg`, the virtual environment is corrupted. Rebuild it with:
+
+```powershell
+Remove-Item -Recurse -Force venv
+py -m venv venv
+venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+```
+
 ### Firebase credentials
 
 The backend expects a service account key at:
