@@ -106,6 +106,64 @@ def get_user_profile(uid):
         return jsonify(profile), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 400
+
+
+@app.route('/users/<uid>', methods=['PATCH'])
+def update_user_profile(uid):
+    data = parse_payload()
+
+    if not isinstance(data, dict):
+        return jsonify({"error": "Invalid or missing request body."}), 400
+
+    allowed_fields = {"firstName", "lastName", "displayName", "email", "phone", "school"}
+    updates = {
+        key: (value.strip() if isinstance(value, str) else value)
+        for key, value in data.items()
+        if key in allowed_fields
+    }
+
+    if not updates:
+        return jsonify({"error": "No valid profile fields to update."}), 400
+
+    updates["updatedAt"] = firestore.SERVER_TIMESTAMP
+
+    try:
+        user_ref = db.collection('users').document(uid)
+        user_ref.set(updates, merge=True)
+        return jsonify({"message": "Profile updated"}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 400
+
+
+@app.route('/reports', methods=['POST'])
+def create_report():
+    data = parse_payload()
+
+    if not isinstance(data, dict):
+        return jsonify({"error": "Invalid or missing request body."}), 400
+
+    user_id = data.get("userId")
+    accused_id = data.get("accusedId")
+    description = (data.get("description") or "").strip()
+
+    if not user_id:
+        return jsonify({"error": "userId is required"}), 400
+    if not accused_id:
+        return jsonify({"error": "accusedId is required"}), 400
+    if not description:
+        return jsonify({"error": "description is required"}), 400
+
+    report_data = {
+        "userId": user_id,
+        "accusedId": accused_id,
+        "description": description,
+        "createdAt": firestore.SERVER_TIMESTAMP,
+    }
+
+    report_ref = db.collection("reports").document()
+    report_ref.set(report_data)
+
+    return jsonify({"id": report_ref.id, "message": "Report submitted"}), 201
 ## -- CRUD Operations for Tasks -- ##
 # CREATE
 @app.route('/users/<uid>/tasks', methods=['POST'])

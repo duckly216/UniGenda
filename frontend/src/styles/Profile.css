@@ -121,6 +121,110 @@
   color: #b91c1c;
 }
 
+.report-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.38);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 30;
+  padding: 1rem;
+}
+
+.report-modal {
+  width: min(520px, 100%);
+  background: #ffffff;
+  border-radius: 14px;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 18px 34px rgba(15, 23, 42, 0.16);
+  padding: 1.2rem;
+}
+
+.report-modal h3 {
+  margin: 0 0 0.5rem;
+  color: #111827;
+}
+
+.report-modal-helper {
+  margin: 0 0 0.8rem;
+  color: #475569;
+}
+
+.report-textarea {
+  width: 100%;
+  resize: vertical;
+  border-radius: 10px;
+  border: 1px solid #cbd5e1;
+  padding: 0.75rem;
+  font-family: "Oswald", sans-serif;
+  font-size: 0.95rem;
+  box-sizing: border-box;
+}
+
+.edit-profile-grid {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.edit-profile-input {
+  width: 100%;
+  border-radius: 10px;
+  border: 1px solid #cbd5e1;
+  padding: 0.65rem 0.75rem;
+  font-family: "Oswald", sans-serif;
+  font-size: 0.95rem;
+  box-sizing: border-box;
+}
+
+.report-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.6rem;
+  margin-top: 0.8rem;
+}
+
+.report-cancel-button,
+.report-submit-button {
+  border: none;
+  border-radius: 9px;
+  padding: 0.55rem 0.95rem;
+  font-family: "Oswald", sans-serif;
+  font-size: 0.95rem;
+  cursor: pointer;
+}
+
+.report-cancel-button {
+  background: #e2e8f0;
+  color: #1f2937;
+}
+
+.report-submit-button {
+  background: #7c5cfc;
+  color: #ffffff;
+}
+
+.report-success-state {
+  display: grid;
+  justify-items: center;
+  gap: 0.8rem;
+  text-align: center;
+  padding-top: 0.3rem;
+}
+
+.report-success-check {
+  width: 52px;
+  height: 52px;
+  border-radius: 999px;
+  background: #16a34a;
+  color: #ffffff;
+  font-size: 1.4rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 @media (max-width: 720px) {
   .profile-page-wrapper {
     padding: 1rem;

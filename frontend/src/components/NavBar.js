@@ -58,6 +58,7 @@ const NavBar = ({ user }) => {
             {user?.displayName?.[0] || "?"}
           </div>
         )}
+        <span className="navbar-label">{user?.displayName || "Profile"}</span>
       </div>
       <div className="navbar-gap" />
       {visibleItems("main").map((item) => (
