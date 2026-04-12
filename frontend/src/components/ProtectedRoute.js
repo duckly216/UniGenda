@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
-import { db } from "../firebase";
-import { doc, getDoc } from "firebase/firestore";
+import axios from "axios";
 
 const ProtectedRoute = ({
   children,
@@ -30,10 +29,12 @@ const ProtectedRoute = ({
 
     const checkAdmin = async () => {
       try {
-        const snap = await getDoc(doc(db, "users", user.uid));
+        const response = await axios.get(
+          `http://127.0.0.1:5000/users/${user.uid}`,
+        );
 
         if (isMounted) {
-          setIsAdmin(snap.exists() && snap.data()?.isAdmin === true);
+          setIsAdmin(response.data?.isAdmin === true);
         }
       } catch (error) {
         console.error("Error checking admin status:", error);
