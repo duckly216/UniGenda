@@ -8,6 +8,7 @@ import Dashboard from "./components/Dashboard";
 import NavBar from "./components/NavBar";
 import Calendar from "./components/Calendar";
 import ProfilePage from "./components/ProfilePage";
+import ModerationPage from "./components/ModerationPage";
 import "./styles/Home.css";
 import ProtectedRoute from "./components/ProtectedRoute";
 
@@ -127,7 +128,9 @@ function App() {
             >
               <div style={{ display: "flex" }}>
                 <NavBar user={currentUser} />
-                <div style={{ marginLeft: "60px", flex: 1 }}></div>
+                <div style={{ marginLeft: "60px", flex: 1 }}>
+                  <ModerationPage />
+                </div>
               </div>
             </ProtectedRoute>
           }

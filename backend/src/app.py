@@ -44,6 +44,38 @@ def get_user_task_ref(user_id, task_id):
     return db.collection('users').document(user_id).collection('tasks').document(task_id)
 
 
+def get_user_public_profile(uid):
+    if not uid:
+        return None
+
+    user_doc = db.collection('users').document(uid).get()
+    if not getattr(user_doc, "exists", False):
+        return None
+
+    user_data = user_doc.to_dict() or {}
+    return {
+        "uid": uid,
+        "displayName": user_data.get("displayName"),
+        "email": user_data.get("email"),
+        "phone": user_data.get("phone"),
+        "school": user_data.get("school"),
+    }
+
+
+def delete_user_documents(uid):
+    if not uid:
+        return
+
+    user_ref = db.collection('users').document(uid)
+    tasks_stream = user_ref.collection('tasks').stream()
+    for task_doc in tasks_stream:
+        task_ref = user_ref.collection('tasks').document(task_doc.id)
+        task_ref.delete()
+        public_tasks.document(task_doc.id).delete()
+
+    user_ref.delete()
+
+
 def get_authenticated_uid():
     current_user = getattr(g, "current_user", None)
     if isinstance(current_user, dict):
@@ -157,6 +189,7 @@ def create_report():
         "userId": user_id,
         "accusedId": accused_id,
         "description": description,
+        "status": "active",
         "createdAt": firestore.SERVER_TIMESTAMP,
     }
 
@@ -164,6 +197,85 @@ def create_report():
     report_ref.set(report_data)
 
     return jsonify({"id": report_ref.id, "message": "Report submitted"}), 201
+
+
+@app.route('/reports/active', methods=['GET'])
+def get_active_reports():
+    try:
+        report_docs = db.collection("reports").stream()
+        active_reports = []
+
+        for report_doc in report_docs:
+            report_data = report_doc.to_dict() or {}
+            status = report_data.get("status", "active")
+
+            if status != "active":
+                continue
+
+            reporter_id = report_data.get("userId")
+            accused_id = report_data.get("accusedId")
+
+            active_reports.append({
+                "id": report_doc.id,
+                "userId": reporter_id,
+                "accusedId": accused_id,
+                "description": report_data.get("description", ""),
+                "status": status,
+                "createdAt": report_data.get("createdAt"),
+                "reporter": get_user_public_profile(reporter_id),
+                "accused": get_user_public_profile(accused_id),
+            })
+
+        return jsonify(active_reports), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 400
+
+
+@app.route('/reports/<report_id>/close', methods=['PATCH'])
+def close_report(report_id):
+    try:
+        report_ref = db.collection("reports").document(report_id)
+        report_doc = report_ref.get()
+
+        if not getattr(report_doc, "exists", False):
+            return jsonify({"error": "Report not found"}), 404
+
+        report_ref.set({
+            "status": "closed",
+            "closedAt": firestore.SERVER_TIMESTAMP,
+        }, merge=True)
+
+        return jsonify({"message": "Report closed"}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 400
+
+
+@app.route('/reports/<report_id>/ban', methods=['POST'])
+def ban_reported_user(report_id):
+    try:
+        report_ref = db.collection("reports").document(report_id)
+        report_doc = report_ref.get()
+
+        if not getattr(report_doc, "exists", False):
+            return jsonify({"error": "Report not found"}), 404
+
+        report_data = report_doc.to_dict() or {}
+        accused_id = report_data.get("accusedId")
+
+        if not accused_id:
+            return jsonify({"error": "accusedId is missing on report"}), 400
+
+        delete_user_documents(accused_id)
+
+        report_ref.set({
+            "status": "banned",
+            "closedAt": firestore.SERVER_TIMESTAMP,
+            "bannedUserId": accused_id,
+        }, merge=True)
+
+        return jsonify({"message": "User banned and removed from Firestore"}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 400
 ## -- CRUD Operations for Tasks -- ##
 # CREATE
 @app.route('/users/<uid>/tasks', methods=['POST'])
