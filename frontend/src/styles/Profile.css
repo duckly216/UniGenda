@@ -1,0 +1,142 @@
+.profile-page-wrapper {
+  min-height: 100vh;
+  padding: 2rem;
+  background: #f7f8fc;
+  font-family: "Oswald", sans-serif;
+}
+
+.profile-card {
+  width: min(680px, 100%);
+  margin: 0 auto;
+  background: #ffffff;
+  border-radius: 16px;
+  border: 1px solid #e5e7eb;
+  padding: 1.5rem;
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.06);
+}
+
+.profile-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.2rem;
+}
+
+.profile-card-header h2 {
+  margin: 0;
+  color: #111827;
+}
+
+.profile-actions {
+  position: relative;
+}
+
+.profile-actions-trigger {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  border: 1px solid #d1d5db;
+  background: #ffffff;
+  cursor: pointer;
+  font-size: 1rem;
+  font-family: "Oswald", sans-serif;
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+
+.profile-actions-menu {
+  position: absolute;
+  top: 42px;
+  right: 0;
+  width: 220px;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  box-shadow: 0 18px 30px rgba(15, 23, 42, 0.08);
+  overflow: hidden;
+  z-index: 10;
+}
+
+.profile-actions-menu button {
+  width: 100%;
+  text-align: left;
+  padding: 0.75rem 0.9rem;
+  border: none;
+  background: #ffffff;
+  cursor: pointer;
+  font-family: "Oswald", sans-serif;
+  font-size: 0.95rem;
+}
+
+.profile-actions-menu button:hover {
+  background: #f3f4f6;
+}
+
+.profile-details {
+  display: grid;
+  gap: 0.9rem;
+}
+
+.profile-identity-row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.profile-avatar {
+  width: 92px;
+  height: 92px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #0ea5e9, #0369a1);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.8rem;
+  font-weight: 700;
+}
+
+.profile-display-name {
+  margin: 0;
+  font-size: 2rem;
+  font-weight: 600;
+  color: #111827;
+}
+
+.profile-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  border-top: 1px solid #f1f5f9;
+  padding-top: 0.75rem;
+  color: #111827;
+}
+
+.profile-label {
+  color: #64748b;
+  font-weight: 600;
+}
+
+.profile-error {
+  color: #b91c1c;
+}
+
+@media (max-width: 720px) {
+  .profile-page-wrapper {
+    padding: 1rem;
+  }
+
+  .profile-row {
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  .profile-identity-row {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .profile-display-name {
+    font-size: 1.6rem;
+  }
+}

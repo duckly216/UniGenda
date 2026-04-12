@@ -22,6 +22,7 @@ const NavBar = ({ user }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const [isAdmin, setIsAdmin] = useState(false);
+  const profilePath = user?.uid ? `/profile/${user.uid}` : "/profile";
 
   useEffect(() => {
     if (!user?.uid) {
@@ -49,7 +50,7 @@ const NavBar = ({ user }) => {
 
   return (
     <nav className="navbar">
-      <div className="navbar-profile" onClick={() => navigate("/profile")}>
+      <div className="navbar-profile" onClick={() => navigate(profilePath)}>
         {user?.photoURL ? (
           <img src={user.photoURL} alt="Profile" className="navbar-avatar" />
         ) : (
@@ -57,13 +58,20 @@ const NavBar = ({ user }) => {
             {user?.displayName?.[0] || "?"}
           </div>
         )}
-        <span className="navbar-label">{user?.displayName || "Profile"}</span>
       </div>
       <div className="navbar-gap" />
       {visibleItems("main").map((item) => (
         <button
           key={item.path}
-          className={`navbar-item ${location.pathname === item.path ? "active" : ""}`}
+          className={`navbar-item ${
+            item.path === "/profile"
+              ? location.pathname.startsWith("/profile")
+                ? "active"
+                : ""
+              : location.pathname === item.path
+                ? "active"
+                : ""
+          }`}
           onClick={() => navigate(item.path)}
         >
           <span className="navbar-icon">{item.icon}</span>

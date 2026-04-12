@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Routes, Route, useNavigate } from "react-router-dom";
+import { Routes, Route, useNavigate, Navigate } from "react-router-dom";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "./firebase";
 import Login from "./components/Login";
@@ -7,6 +7,7 @@ import Registration from "./components/Registration";
 import Dashboard from "./components/Dashboard";
 import NavBar from "./components/NavBar";
 import Calendar from "./components/Calendar";
+import ProfilePage from "./components/ProfilePage";
 import "./styles/Home.css";
 import ProtectedRoute from "./components/ProtectedRoute";
 
@@ -86,9 +87,21 @@ function App() {
           path="/profile"
           element={
             <ProtectedRoute user={currentUser} authLoading={authLoading}>
+              {currentUser ? (
+                <Navigate to={`/profile/${currentUser.uid}`} replace />
+              ) : null}
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/profile/:userId"
+          element={
+            <ProtectedRoute user={currentUser} authLoading={authLoading}>
               <div style={{ display: "flex" }}>
                 <NavBar user={currentUser} />
-                <div style={{ marginLeft: "60px", flex: 1 }}></div>
+                <div style={{ marginLeft: "60px", flex: 1 }}>
+                  <ProfilePage />
+                </div>
               </div>
             </ProtectedRoute>
           }
