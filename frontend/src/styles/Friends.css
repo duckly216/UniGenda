@@ -1,0 +1,151 @@
+@import url("https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600&display=swap");
+
+.friends-page {
+    padding: 2rem;
+    max-width: 800px;
+    margin: 0 auto;
+    font-family: "Oswald", sans-serif;
+}
+
+.friends-heading {
+    font-size: 2rem;
+    font-weight: 600;
+    color: #111827;
+    margin-bottom: 1.5rem;
+}
+
+.friends-section {
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.05);
+}
+
+.friends-section-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #111827;
+    margin: 0 0 1rem 0;
+}
+
+.friends-search-bar {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.friends-search-input {
+    flex: 1;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    font-family: "Oswald", sans-serif;
+    font-size: 0.95rem;
+    color: #111827;
+    outline: none;
+}
+
+.friends-search-input:focus {
+    border-color: #7c5cfc;
+}
+
+.friends-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.friends-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.75rem 1rem;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    background: #f8fafc;
+}
+
+.friends-card-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+}
+
+.friends-card-name {
+    font-size: 1rem;
+    font-weight: 500;
+    color: #111827;
+}
+
+.friends-card-school {
+    font-size: 0.8rem;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+.friends-card-actions {
+    display: flex;
+    gap: 0.5rem;
+    flex-shrink: 0;
+}
+
+.friends-btn {
+    padding: 0.4rem 0.9rem;
+    border: none;
+    border-radius: 6px;
+    font-family: "Oswald", sans-serif;
+    font-size: 0.85rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: opacity 0.15s;
+}
+
+.friends-btn:hover {
+    opacity: 0.85;
+}
+
+.friends-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.friends-btn-add {
+    background: #7c5cfc;
+    color: #fff;
+}
+
+.friends-btn-search {
+    background: #7c5cfc;
+    color: #fff;
+    white-space: nowrap;
+}
+
+.friends-btn-cancel {
+    background: #e2e8f0;
+    color: #64748b;
+}
+
+.friends-btn-view {
+    background: #e2e8f0;
+    color: #111827;
+}
+
+.friends-btn-remove {
+    background: #fee2e2;
+    color: #dc2626;
+}
+
+.friends-status-badge {
+    font-size: 0.85rem;
+    color: #64748b;
+    font-family: "Oswald", sans-serif;
+}
+
+.friends-empty {
+    color: #64748b;
+    font-size: 0.95rem;
+    margin: 0;
+}
