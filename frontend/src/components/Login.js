@@ -1,10 +1,15 @@
 import React, { useState } from "react";
 import { auth } from "../firebase";
-import { signInWithEmailAndPassword} from "firebase/auth";
+import {
+  browserLocalPersistence,
+  setPersistence,
+  signInWithEmailAndPassword,
+} from "firebase/auth";
 import { useNavigate, Link } from "react-router-dom";
 import "../styles/Login.css";
 
-const Login = ({mode, onClose }) => { // False means it is login, True means it will be in sign-up
+const Login = ({ mode, onClose }) => {
+  // False means it is login, True means it will be in sign-up
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -15,7 +20,6 @@ const Login = ({mode, onClose }) => { // False means it is login, True means it 
   // Identifies if it is a popup or a separate page
   const isPopup = mode === "popup";
 
-
   const handleAuth = async (e) => {
     e.preventDefault();
 
@@ -25,6 +29,7 @@ const Login = ({mode, onClose }) => { // False means it is login, True means it 
       if (isSignup) {
         navigate("/registration", { state: { email, password } });
       } else {
+        await setPersistence(auth, browserLocalPersistence);
         await signInWithEmailAndPassword(auth, email, password);
         navigate("/dashboard");
       }
@@ -35,7 +40,7 @@ const Login = ({mode, onClose }) => { // False means it is login, True means it 
         setError("This email is already registered. Try logging in.");
       } else if (err.code === "auth/invalid-credential") {
         setError("Email or password not valid.");
-        } else if (err.code === "auth/weak-password") {
+      } else if (err.code === "auth/weak-password") {
         setError("Password should be at least 6 characters long");
       } else if (err.code === "auth/user-not-found") {
         setError("We couldn't find an account with that email.");

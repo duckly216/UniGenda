@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { db } from "../firebase";
-import { doc, getDoc } from "firebase/firestore";
+import axios from "axios";
 import "../styles/NavBar.css";
 
 const NAV_ITEMS = [
@@ -23,16 +22,20 @@ const NavBar = ({ user }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const [isAdmin, setIsAdmin] = useState(false);
+  const profilePath = user?.uid ? `/profile/${user.uid}` : "/profile";
 
   useEffect(() => {
     if (!user?.uid) {
+      setIsAdmin(false);
       return;
     }
 
     const fetchRole = async () => {
       try {
-        const snap = await getDoc(doc(db, "users", user.uid));
-        setIsAdmin(snap.exists() && snap.data()?.isAdmin === true);
+        const response = await axios.get(
+          `http://127.0.0.1:5000/users/${user.uid}`,
+        );
+        setIsAdmin(response.data?.isAdmin === true);
       } catch (error) {
         console.error("Error loading user role:", error);
         setIsAdmin(false);
@@ -47,7 +50,7 @@ const NavBar = ({ user }) => {
 
   return (
     <nav className="navbar">
-      <div className="navbar-profile" onClick={() => navigate("/profile")}>
+      <div className="navbar-profile" onClick={() => navigate(profilePath)}>
         {user?.photoURL ? (
           <img src={user.photoURL} alt="Profile" className="navbar-avatar" />
         ) : (
@@ -61,7 +64,15 @@ const NavBar = ({ user }) => {
       {visibleItems("main").map((item) => (
         <button
           key={item.path}
-          className={`navbar-item ${location.pathname === item.path ? "active" : ""}`}
+          className={`navbar-item ${
+            item.path === "/profile"
+              ? location.pathname.startsWith("/profile")
+                ? "active"
+                : ""
+              : location.pathname === item.path
+                ? "active"
+                : ""
+          }`}
           onClick={() => navigate(item.path)}
         >
           <span className="navbar-icon">{item.icon}</span>

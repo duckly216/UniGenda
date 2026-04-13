@@ -1,40 +1,74 @@
 import React, { useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
-import { auth, db } from "../firebase";
-import { doc, getDoc } from "firebase/firestore";
+import axios from "axios";
 
-const ProtectedRoute = ({ children, adminOnly = false }) => {
-  const user = auth.currentUser;
+const ProtectedRoute = ({
+  children,
+  adminOnly = false,
+  user,
+  authLoading = false,
+}) => {
   const [isAdmin, setIsAdmin] = useState(null);
 
-  //fetches admin status of user with userId
   useEffect(() => {
-    if (!adminOnly || !user) {
-      return;
+    let isMounted = true;
+
+    if (!adminOnly) {
+      setIsAdmin(null);
+      return () => {
+        isMounted = false;
+      };
+    }
+
+    if (!user?.uid) {
+      setIsAdmin(false);
+      return () => {
+        isMounted = false;
+      };
     }
 
     const checkAdmin = async () => {
       try {
-        const snap = await getDoc(doc(db, "users", user.uid));
-        setIsAdmin(snap.exists() && snap.data()?.isAdmin === true);
+        const response = await axios.get(
+          `http://127.0.0.1:5000/users/${user.uid}`,
+        );
+
+        if (isMounted) {
+          setIsAdmin(response.data?.isAdmin === true);
+        }
       } catch (error) {
         console.error("Error checking admin status:", error);
-        setIsAdmin(false);
+
+        if (isMounted) {
+          setIsAdmin(false);
+        }
       }
     };
 
+    setIsAdmin(null);
     checkAdmin();
-  }, [adminOnly, user]);
+
+    return () => {
+      isMounted = false;
+    };
+  }, [adminOnly, user?.uid]);
+
+  if (authLoading) {
+    return null;
+  }
 
   if (!user) {
-    return <Navigate to="/login" />;
+    return <Navigate to="/login" replace />;
   }
+
   if (adminOnly && isAdmin === null) {
     return null;
   }
+
   if (adminOnly && !isAdmin) {
-    return <Navigate to="/dashboard" />;
+    return <Navigate to="/dashboard" replace />;
   }
+
   return children;
 };
 

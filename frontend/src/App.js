@@ -1,18 +1,32 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Routes, Route, useNavigate, Navigate } from "react-router-dom";
+import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "./firebase";
 import Login from "./components/Login";
 import Registration from "./components/Registration";
 import Dashboard from "./components/Dashboard";
 import NavBar from "./components/NavBar";
 import Calendar from "./components/Calendar";
+import ProfilePage from "./components/ProfilePage";
+import ModerationPage from "./components/ModerationPage";
 import "./styles/Home.css";
 import ProtectedRoute from "./components/ProtectedRoute";
-// import Dashboard from './components/Dashboard';
 
 function App() {
   const [showLogin, setShowLogin] = useState(false);
+  const [currentUser, setCurrentUser] = useState(null);
+  const [authLoading, setAuthLoading] = useState(true);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      setCurrentUser(user);
+      setAuthLoading(false);
+    });
+
+    return unsubscribe;
+  }, []);
+
   return (
     <div className="App">
       <Routes>
@@ -47,9 +61,9 @@ function App() {
         <Route
           path="/dashboard"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute user={currentUser} authLoading={authLoading}>
               <div style={{ display: "flex" }}>
-                <NavBar user={auth.currentUser} />
+                <NavBar user={currentUser} />
                 <div style={{ marginLeft: "60px", flex: 1 }}>
                   <Dashboard />
                 </div>
@@ -60,9 +74,9 @@ function App() {
         <Route
           path="/calendar"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute user={currentUser} authLoading={authLoading}>
               <div style={{ display: "flex" }}>
-                <NavBar user={auth.currentUser} />
+                <NavBar user={currentUser} />
                 <div style={{ marginLeft: "60px", flex: 1 }}>
                   <Calendar />
                 </div>
@@ -73,10 +87,22 @@ function App() {
         <Route
           path="/profile"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute user={currentUser} authLoading={authLoading}>
+              {currentUser ? (
+                <Navigate to={`/profile/${currentUser.uid}`} replace />
+              ) : null}
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/profile/:userId"
+          element={
+            <ProtectedRoute user={currentUser} authLoading={authLoading}>
               <div style={{ display: "flex" }}>
-                <NavBar user={auth.currentUser} />
-                <div style={{ marginLeft: "60px", flex: 1 }}></div>
+                <NavBar user={currentUser} />
+                <div style={{ marginLeft: "60px", flex: 1 }}>
+                  <ProfilePage />
+                </div>
               </div>
             </ProtectedRoute>
           }
@@ -84,9 +110,9 @@ function App() {
         <Route
           path="/tasks"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute user={currentUser} authLoading={authLoading}>
               <div style={{ display: "flex" }}>
-                <NavBar user={auth.currentUser} />
+                <NavBar user={currentUser} />
                 <div style={{ marginLeft: "60px", flex: 1 }}></div>
               </div>
             </ProtectedRoute>
@@ -95,10 +121,16 @@ function App() {
         <Route
           path="/moderation"
           element={
-            <ProtectedRoute adminOnly={true}>
+            <ProtectedRoute
+              user={currentUser}
+              authLoading={authLoading}
+              adminOnly={true}
+            >
               <div style={{ display: "flex" }}>
-                <NavBar user={auth.currentUser} />
-                <div style={{ marginLeft: "60px", flex: 1 }}></div>
+                <NavBar user={currentUser} />
+                <div style={{ marginLeft: "60px", flex: 1 }}>
+                  <ModerationPage />
+                </div>
               </div>
             </ProtectedRoute>
           }
@@ -106,9 +138,9 @@ function App() {
         <Route
           path="/settings"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute user={currentUser} authLoading={authLoading}>
               <div style={{ display: "flex" }}>
-                <NavBar user={auth.currentUser} />
+                <NavBar user={currentUser} />
                 <div style={{ marginLeft: "60px", flex: 1 }}></div>
               </div>
             </ProtectedRoute>
