@@ -10,6 +10,7 @@ const TaskList = ({ refreshTrigger }) => {
   const [uid, setUid] = useState(null);
   const [deletingTaskId, setDeletingTaskId] = useState(null);
   const [confirmingTaskId, setConfirmingTaskId] = useState(null);
+  const [openMenuTaskId, setOpenMenuTaskId] = useState(null);
   const [expandedTaskIds, setExpandedTaskIds] = useState({});
   const [activeTab, setActiveTab] = useState('uncompleted'); // 'uncompleted' or 'completed'
 
@@ -44,6 +45,17 @@ const TaskList = ({ refreshTrigger }) => {
     fetchTasks();
   }, [uid, refreshTrigger]); // Refetches when auth/task state changes
 
+  useEffect(() => {
+    const handleGlobalClick = (event) => {
+      if (!event.target.closest('.task-item-actions')) {
+        setOpenMenuTaskId(null);
+      }
+    };
+
+    document.addEventListener('click', handleGlobalClick);
+    return () => document.removeEventListener('click', handleGlobalClick);
+  }, []);
+
   const confirmDeleteTask = async (taskId) => {
     if (!uid || !taskId) return;
 
@@ -66,6 +78,71 @@ const TaskList = ({ refreshTrigger }) => {
       ...prev,
       [taskId]: !prev[taskId]
     }));
+  };
+
+  const editTask = async (task) => {
+    if (!uid || !task?.id) return;
+
+    setOpenMenuTaskId(null);
+
+    const nextTitleInput = window.prompt('Edit task title:', task.title || '');
+    if (nextTitleInput === null) return;
+
+    const nextTitle = nextTitleInput.trim();
+    if (!nextTitle) {
+      alert('Task title cannot be empty.');
+      return;
+    }
+
+    const nextDescriptionInput = window.prompt('Edit description:', task.description || '');
+    if (nextDescriptionInput === null) return;
+
+    const nextDueDateInput = window.prompt(
+      'Edit due date (YYYY-MM-DD). Leave blank for no due date:',
+      task.dueDate || ''
+    );
+    if (nextDueDateInput === null) return;
+
+    const nextPriorityInput = window.prompt(
+      'Edit priority (low, medium, high):',
+      task.priority || 'medium'
+    );
+    if (nextPriorityInput === null) return;
+
+    const normalizedPriority = String(nextPriorityInput).trim().toLowerCase();
+    if (!['low', 'medium', 'high'].includes(normalizedPriority)) {
+      alert('Priority must be low, medium, or high.');
+      return;
+    }
+
+    const normalizedDueDate = nextDueDateInput.trim() ? nextDueDateInput.trim() : null;
+
+    try {
+      await axios.patch(`http://127.0.0.1:5000/users/${uid}/tasks/${task.id}`, {
+        userId: uid,
+        title: nextTitle,
+        description: nextDescriptionInput,
+        dueDate: normalizedDueDate,
+        priority: normalizedPriority
+      });
+
+      setTasks((prev) =>
+        prev.map((t) =>
+          t.id === task.id
+            ? {
+                ...t,
+                title: nextTitle,
+                description: nextDescriptionInput,
+                dueDate: normalizedDueDate,
+                priority: normalizedPriority
+              }
+            : t
+        )
+      );
+    } catch (err) {
+      console.error('Error editing task:', err);
+      alert('Could not edit task. Please try again.');
+    }
   };
 
   const toggleTaskCompletion = async (task) => {
@@ -119,7 +196,10 @@ const TaskList = ({ refreshTrigger }) => {
       {loading && <p>Loading tasks...</p>}
       {filteredTasks.length > 0 ? (
         filteredTasks.map(task => (
-          <div key={task.id} className="task-item task-item-with-confirmation">
+          <div
+            key={task.id}
+            className={`task-item task-item-with-confirmation priority-underlined priority-${task.priority || 'medium'}`}
+          >
             <div className={`task-item-content ${confirmingTaskId === task.id ? 'task-item-obscured' : ''}`}>
               <div className="task-item-header-row">
                 <div className="task-item-checkbox-wrapper">
@@ -133,29 +213,61 @@ const TaskList = ({ refreshTrigger }) => {
                 </div>
 
                 <div className="task-item-summary">
-                  <h4>{task.title}</h4>
-                  <small>Due: {task.dueDate || 'No due date'}</small>
+                  <div className="task-item-title-row">
+                    <h4>{task.title}</h4>
+                    <small className="task-item-due-inline">Due: {task.dueDate || 'No due date'}</small>
+                  </div>
                 </div>
 
                 <div className="task-item-actions">
                   <button
                     type="button"
-                    className="task-details-button"
-                    onClick={() => toggleTaskDetails(task.id)}
+                    className="task-menu-button"
+                    aria-label="Task options"
+                    aria-haspopup="menu"
+                    aria-expanded={openMenuTaskId === task.id}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setOpenMenuTaskId((prev) => (prev === task.id ? null : task.id));
+                    }}
                     disabled={deletingTaskId === task.id}
                   >
-                    {expandedTaskIds[task.id] ? 'Hide Details' : 'Show Details'}
+                    ⋯
                   </button>
 
-                  {confirmingTaskId !== task.id && (
-                    <button
-                      type="button"
-                      className="delete-task-button"
-                      onClick={() => setConfirmingTaskId(task.id)}
-                      disabled={deletingTaskId === task.id}
-                    >
-                      {deletingTaskId === task.id ? 'Deleting...' : 'Delete Task'}
-                    </button>
+                  {openMenuTaskId === task.id && (
+                    <div className="task-item-menu" role="menu">
+                      <button
+                        type="button"
+                        className="task-item-menu-option"
+                        onClick={() => {
+                          toggleTaskDetails(task.id);
+                          setOpenMenuTaskId(null);
+                        }}
+                      >
+                        {expandedTaskIds[task.id] ? 'Hide Details' : 'Show Details'}
+                      </button>
+                      <button
+                        type="button"
+                        className="task-item-menu-option"
+                        onClick={() => editTask(task)}
+                      >
+                        Edit Task
+                      </button>
+                      {confirmingTaskId !== task.id && (
+                        <button
+                          type="button"
+                          className="task-item-menu-option danger"
+                          onClick={() => {
+                            setConfirmingTaskId(task.id);
+                            setOpenMenuTaskId(null);
+                          }}
+                          disabled={deletingTaskId === task.id}
+                        >
+                          {deletingTaskId === task.id ? 'Deleting...' : 'Delete Task'}
+                        </button>
+                      )}
+                    </div>
                   )}
                 </div>
               </div>

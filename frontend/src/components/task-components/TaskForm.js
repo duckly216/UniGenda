@@ -98,7 +98,7 @@ const TaskForm = ({ onTaskAdded }) => {
                 <select
                 value={priority}
                 onChange={(e) => setPriority(e.target.value)}
-                className={`priority-select priority-${priority}`}
+                className={`priority-select priority-underlined priority-${priority}`}
                 >
                     <option value="low" className="priority-option">Low Priority</option>
                     <option value="medium" className="priority-option">Medium Priority</option>
