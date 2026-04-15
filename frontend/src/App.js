@@ -9,6 +9,7 @@ import NavBar from "./components/NavBar";
 import Calendar from "./components/Calendar";
 import ProfilePage from "./components/ProfilePage";
 import ModerationPage from "./components/ModerationPage";
+import FriendsPage from "./components/FriendsPage";
 import "./styles/Home.css";
 import ProtectedRoute from "./components/ProtectedRoute";
 
@@ -142,6 +143,19 @@ function App() {
               <div style={{ display: "flex" }}>
                 <NavBar user={currentUser} />
                 <div style={{ marginLeft: "60px", flex: 1 }}></div>
+              </div>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/friends"
+          element={
+            <ProtectedRoute user={currentUser} authLoading={authLoading}>
+              <div style={{ display: "flex" }}>
+                <NavBar user={currentUser} />
+                <div style={{ marginLeft: "60px", flex: 1 }}>
+                  <FriendsPage />
+                </div>
               </div>
             </ProtectedRoute>
           }

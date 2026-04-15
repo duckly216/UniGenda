@@ -521,5 +521,228 @@ def delete_public_task(task_id):
     return jsonify({"message": "Task deleted"}), 200
 ## -- --------------- -- ##
 
+## -- Friends -- ##
+
+@app.route('/users/search', methods=['GET'])
+def search_users():
+    q = request.args.get('q', '').strip()
+    if not q:
+        return jsonify([]), 200
+
+    try:
+        results = []
+        query = (
+            db.collection('users')
+            .where('displayName', '>=', q)
+            .where('displayName', '<=', q + '\uf8ff')
+            .limit(10)
+            .stream()
+        )
+        for doc in query:
+            data = doc.to_dict() or {}
+            results.append({
+                "uid": doc.id,
+                "displayName": data.get("displayName"),
+                "school": data.get("school"),
+            })
+        return jsonify(results), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 400
+
+
+@app.route('/friend_requests', methods=['POST'])
+@require_auth
+def send_friend_request():
+    from_uid = get_authenticated_uid()
+    data = parse_payload()
+
+    if not isinstance(data, dict):
+        return jsonify({"error": "Invalid or missing request body."}), 400
+
+    to_uid = (data.get("toUid") or "").strip()
+    if not to_uid:
+        return jsonify({"error": "toUid is required"}), 400
+    if to_uid == from_uid:
+        return jsonify({"error": "Cannot send a friend request to yourself"}), 400
+
+    existing_friend = db.collection('users').document(from_uid).collection('friends').document(to_uid).get()
+    if getattr(existing_friend, "exists", False):
+        return jsonify({"error": "Already friends"}), 409
+
+    for _ in (
+        db.collection('friend_requests')
+        .where('fromUid', '==', from_uid)
+        .where('toUid', '==', to_uid)
+        .where('status', '==', 'pending')
+        .limit(1)
+        .stream()
+    ):
+        return jsonify({"error": "Friend request already sent"}), 409
+
+    for _ in (
+        db.collection('friend_requests')
+        .where('fromUid', '==', to_uid)
+        .where('toUid', '==', from_uid)
+        .where('status', '==', 'pending')
+        .limit(1)
+        .stream()
+    ):
+        return jsonify({"error": "This user has already sent you a friend request"}), 409
+
+    request_ref = db.collection('friend_requests').document()
+    request_ref.set({
+        "fromUid": from_uid,
+        "toUid": to_uid,
+        "status": "pending",
+        "sentAt": firestore.SERVER_TIMESTAMP,
+    })
+    return jsonify({"id": request_ref.id, "message": "Friend request sent"}), 201
+
+
+@app.route('/friend_requests', methods=['GET'])
+@require_auth
+def get_friend_requests():
+    uid = get_authenticated_uid()
+
+    try:
+        incoming = []
+        for doc in (
+            db.collection('friend_requests')
+            .where('toUid', '==', uid)
+            .where('status', '==', 'pending')
+            .stream()
+        ):
+            d = doc.to_dict() or {}
+            incoming.append({
+                "id": doc.id,
+                "fromUid": d.get("fromUid"),
+                "toUid": d.get("toUid"),
+                "status": d.get("status"),
+                "fromProfile": get_user_public_profile(d.get("fromUid")),
+            })
+
+        outgoing = []
+        for doc in (
+            db.collection('friend_requests')
+            .where('fromUid', '==', uid)
+            .where('status', '==', 'pending')
+            .stream()
+        ):
+            d = doc.to_dict() or {}
+            outgoing.append({
+                "id": doc.id,
+                "fromUid": d.get("fromUid"),
+                "toUid": d.get("toUid"),
+                "status": d.get("status"),
+                "toProfile": get_user_public_profile(d.get("toUid")),
+            })
+
+        return jsonify({"incoming": incoming, "outgoing": outgoing}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 400
+
+
+@app.route('/friend_requests/<request_id>', methods=['PATCH'])
+@require_auth
+def respond_to_friend_request(request_id):
+    uid = get_authenticated_uid()
+    data = parse_payload()
+
+    if not isinstance(data, dict):
+        return jsonify({"error": "Invalid or missing request body."}), 400
+
+    action = (data.get("action") or "").strip()
+    if action not in ("accept", "reject"):
+        return jsonify({"error": "action must be 'accept' or 'reject'"}), 400
+
+    request_ref = db.collection('friend_requests').document(request_id)
+    request_doc = request_ref.get()
+
+    if not getattr(request_doc, "exists", False):
+        return jsonify({"error": "Friend request not found"}), 404
+
+    request_data = request_doc.to_dict() or {}
+
+    if request_data.get("toUid") != uid:
+        return jsonify({"error": "Forbidden"}), 403
+    if request_data.get("status") != "pending":
+        return jsonify({"error": "Request is no longer pending"}), 409
+
+    if action == "reject":
+        request_ref.set({"status": "rejected"}, merge=True)
+        return jsonify({"message": "Friend request rejected"}), 200
+
+    from_uid = request_data.get("fromUid")
+    from_profile = get_user_public_profile(from_uid) or {}
+    to_profile = get_user_public_profile(uid) or {}
+
+    db.collection('users').document(from_uid).collection('friends').document(uid).set({
+        "displayName": to_profile.get("displayName"),
+        "school": to_profile.get("school"),
+        "addedAt": firestore.SERVER_TIMESTAMP,
+    })
+    db.collection('users').document(uid).collection('friends').document(from_uid).set({
+        "displayName": from_profile.get("displayName"),
+        "school": from_profile.get("school"),
+        "addedAt": firestore.SERVER_TIMESTAMP,
+    })
+
+    request_ref.set({"status": "accepted"}, merge=True)
+    return jsonify({"message": "Friend request accepted"}), 200
+
+
+@app.route('/friend_requests/<request_id>', methods=['DELETE'])
+@require_auth
+def cancel_friend_request(request_id):
+    uid = get_authenticated_uid()
+
+    request_ref = db.collection('friend_requests').document(request_id)
+    request_doc = request_ref.get()
+
+    if not getattr(request_doc, "exists", False):
+        return jsonify({"error": "Friend request not found"}), 404
+
+    request_data = request_doc.to_dict() or {}
+
+    if request_data.get("fromUid") != uid:
+        return jsonify({"error": "Forbidden"}), 403
+    if request_data.get("status") != "pending":
+        return jsonify({"error": "Can only cancel pending requests"}), 409
+
+    request_ref.delete()
+    return jsonify({"message": "Friend request cancelled"}), 200
+
+
+@app.route('/users/<uid>/friends', methods=['GET'])
+def get_friends(uid):
+    try:
+        friends = []
+        for doc in db.collection('users').document(uid).collection('friends').stream():
+            d = doc.to_dict() or {}
+            friends.append({
+                "uid": doc.id,
+                "displayName": d.get("displayName"),
+                "school": d.get("school"),
+            })
+        return jsonify(friends), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 400
+
+
+@app.route('/users/<uid>/friends/<friend_uid>', methods=['DELETE'])
+@require_auth
+def remove_friend(uid, friend_uid):
+    authenticated_uid = get_authenticated_uid()
+
+    if authenticated_uid != uid:
+        return jsonify({"error": "Forbidden"}), 403
+
+    db.collection('users').document(uid).collection('friends').document(friend_uid).delete()
+    db.collection('users').document(friend_uid).collection('friends').document(uid).delete()
+
+    return jsonify({"message": "Friend removed"}), 200
+
+## -- --------------- -- ##
+
 if __name__ == '__main__':
     app.run(debug=True)
