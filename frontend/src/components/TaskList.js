@@ -134,7 +134,7 @@ const TaskList = ({ refreshTrigger }) => {
 
                 <div className="task-item-summary">
                   <h4>{task.title}</h4>
-                  <small>Due: {task.dueDate}</small>
+                  <small>Due: {task.dueDate || 'No due date'}</small>
                 </div>
 
                 <div className="task-item-actions">
