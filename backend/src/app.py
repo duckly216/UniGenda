@@ -147,9 +147,15 @@ def update_user_profile(uid):
     if not isinstance(data, dict):
         return jsonify({"error": "Invalid or missing request body."}), 400
 
-    allowed_fields = {"firstName", "lastName", "displayName", "email", "phone", "school"}
+    allowed_fields = {"firstName", "lastName", "displayName", "email", "phone", "school", "age"}
     updates = {
-        key: (value.strip() if isinstance(value, str) else value)
+        key: (
+            int(value)
+            if key == "age" and isinstance(value, str) and value.strip().isdigit()
+            else value.strip()
+            if isinstance(value, str)
+            else value
+        )
         for key, value in data.items()
         if key in allowed_fields
     }
@@ -393,15 +399,14 @@ def update_task(uid, task_id):
 
     return jsonify({"message": "Task updated"}), 200
 # DELETE
-@app.route('/users/<uid>/tasks', methods=['DELETE'])
-def delete_task(task_id):
-    user_id = request.args.get("userId")
-    if not user_id:
+@app.route('/users/<uid>/tasks/<task_id>', methods=['DELETE'])
+def delete_task(uid, task_id):
+    if not uid:
         return jsonify({"error": "userId is required"}), 400
 
-    task_snapshot = get_user_task_ref(user_id, task_id).get()
+    task_snapshot = get_user_task_ref(uid, task_id).get()
     if task_snapshot.exists:
-        get_user_task_ref(user_id, task_id).delete()
+        get_user_task_ref(uid, task_id).delete()
     public_tasks.document(task_id).delete()
 
     return jsonify({"message": "Task deleted"}), 200

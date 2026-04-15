@@ -49,9 +49,7 @@ const TaskList = ({ refreshTrigger }) => {
 
     try {
       setDeletingTaskId(taskId);
-      await axios.delete(`http://127.0.0.1:5000/tasks/${taskId}`, {
-        params: { userId: uid }
-      });
+      await axios.delete(`http://127.0.0.1:5000/users/${uid}/tasks/${taskId}`);
 
       setTasks((prev) => prev.filter((task) => task.id !== taskId));
     } catch (err) {

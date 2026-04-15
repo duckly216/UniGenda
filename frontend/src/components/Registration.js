@@ -1,10 +1,11 @@
 import React, { useState } from "react";
+import axios from "axios";
 // Firebase //
 import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
-import { auth, db } from "../firebase"; 
 import { doc, setDoc } from "firebase/firestore";
+import { auth, db } from "../firebase"; 
 // -------- //
-import { useLocation, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import "../styles/Registration.css";
 
 const Registration = () => {
@@ -23,6 +24,16 @@ const Registration = () => {
   const [age, setAge] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
+
+  const buildProfilePayload = () => ({
+    firstName: firstName.trim(),
+    lastName: lastName.trim(),
+    displayName: displayName.trim(),
+    email: email.trim(),
+    phone: phone.trim(),
+    school: school,
+    age: parseInt(age, 10),
+  });
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -54,27 +65,41 @@ const Registration = () => {
         displayName: displayName,
       });
       console.log("Step 2: Firebase Auth Profile Updated: (", displayName, ") set");
-      await setDoc(doc(db, "users", userCredential.user.uid), {
-        firstName: firstName,
-        lastName: lastName,
-        displayName: displayName,
-        email: email,
-        phone: phone,
-        school: school,
-        age: parseInt(age),
-        createdAt: new Date(),
-        isAdmin: false,
-      });
-      console.log("Step 3: Firestore Document written to /users collection."); 
+
+      const profilePayload = buildProfilePayload();
+
+      try {
+        await axios.patch(
+          `http://127.0.0.1:5000/users/${userCredential.user.uid}`,
+          profilePayload,
+        );
+        console.log("Step 3: User profile saved to Firestore via backend.");
+      } catch (backendErr) {
+        console.warn("Backend profile save failed. Falling back to client Firestore write.", backendErr?.message);
+        await setDoc(doc(db, "users", userCredential.user.uid), {
+          ...profilePayload,
+          isAdmin: false,
+          createdAt: new Date(),
+        }, { merge: true });
+        console.log("Step 3b: User profile saved to Firestore via fallback client write.");
+      }
+
       navigate("/dashboard");
     } catch (err) {
       console.error("Registration Error: ", err.message);
+      if (auth.currentUser && err.code !== "auth/email-already-in-use") {
+        try {
+          await auth.currentUser.delete();
+        } catch (cleanupErr) {
+          console.warn("Cleanup failed for partially created auth user:", cleanupErr?.message);
+        }
+      }
       if (err.code === "auth/email-already-in-use") {
         setError("This email is already registered. Try logging in.");
       } else if (err.code === "auth/weak-password") {
         setError("Password should be at least 6 characters.");
       } else {
-        setError("Something went wrong. Please try again later.");
+        setError(err.response?.data?.error || "Something went wrong. Please try again later.");
       }
     }
   };
@@ -83,7 +108,7 @@ const Registration = () => {
     <div className="auth-page-wrapper">
       <div className="auth-page-layout">
         <h2>Complete Your Profile</h2>
-        {error && <p style={{ color: "red" }}>{error}</p>}
+        {error && <p className="error-text">{error}</p>}
         <form onSubmit={handleSubmit}>
           <input
             type="email"
@@ -144,6 +169,14 @@ const Registration = () => {
           <hr className="section-divider" />
           <button type="submit">Complete Registration</button>
         </form>
+        <div className="auth-footer">
+          <p>
+            Already have an account? <Link to="/login">Log in!</Link>
+          </p>
+          <p>
+            Back to <Link to="/">Home Page</Link>
+          </p>
+        </div>
       </div>
     </div>
   );
