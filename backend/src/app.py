@@ -7,6 +7,50 @@ from firebase_config import db
 
 app = Flask(__name__)
 CORS(app)
+<<<<<<< HEAD
+tasks = db.collection('tasks')
+public_tasks = db.collection('public_tasks')
+
+=======
+<<<<<<< HEAD
+tasks = db.collection('public_tasks')
+>>>>>>> 6a5ffc4 (Made it so adding a due date is not necessary anymore & expanded selection of making post public)
+
+def parse_payload():
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict):
+        if request.form:
+            data = request.form.to_dict(flat=True)
+        elif request.data:
+            try:
+                data = json.loads(request.data.decode('utf-8'))
+            except Exception:
+                data = None
+    return data
+
+
+def normalize_tags(raw_tags):
+    if isinstance(raw_tags, str):
+        return [tag.strip() for tag in raw_tags.split(',') if tag.strip()]
+    if isinstance(raw_tags, list):
+        return [str(tag).strip() for tag in raw_tags if str(tag).strip()]
+    return []
+
+
+def normalize_due_date(raw_due_date):
+    if raw_due_date is None:
+        return None
+    if isinstance(raw_due_date, str):
+        due_date = raw_due_date.strip()
+        return due_date or None
+    return raw_due_date
+
+
+<<<<<<< HEAD
+=======
+def get_user_task_ref(user_id, task_id):
+    return db.collection('users').document(user_id).collection('tasks').document(task_id)
+=======
 tasks = db.collection('tasks')
 public_tasks = db.collection('public_tasks')
 
@@ -41,6 +85,7 @@ def normalize_due_date(raw_due_date):
     return raw_due_date
 
 
+>>>>>>> 6a5ffc4 (Made it so adding a due date is not necessary anymore & expanded selection of making post public)
 def normalize_people_needed(raw_people_needed):
     if raw_people_needed is None:
         return None, None
@@ -60,12 +105,96 @@ def normalize_people_needed(raw_people_needed):
 
     return people_needed, None
 
+<<<<<<< HEAD
+=======
+>>>>>>> 9e2797a (Made it so adding a due date is not necessary anymore & expanded selection of making post public)
+>>>>>>> 6a5ffc4 (Made it so adding a due date is not necessary anymore & expanded selection of making post public)
 
 def sync_public_task(task_id, task_data):
     if task_data.get('isPublic'):
         public_tasks.document(task_id).set(task_data)
     else:
         public_tasks.document(task_id).delete()
+<<<<<<< HEAD
+=======
+
+
+def get_user_task_ref(user_id, task_id):
+    return db.collection('users').document(user_id).collection('tasks').document(task_id)
+
+
+def get_user_public_profile(uid):
+    if not uid:
+        return None
+
+    user_doc = db.collection('users').document(uid).get()
+    if not getattr(user_doc, "exists", False):
+        return None
+
+    user_data = user_doc.to_dict() or {}
+    return {
+        "uid": uid,
+        "displayName": user_data.get("displayName"),
+        "email": user_data.get("email"),
+        "phone": user_data.get("phone"),
+        "school": user_data.get("school"),
+    }
+
+
+def delete_user_documents(uid):
+    if not uid:
+        return
+
+    user_ref = db.collection('users').document(uid)
+    tasks_stream = user_ref.collection('tasks').stream()
+    for task_doc in tasks_stream:
+        task_ref = user_ref.collection('tasks').document(task_doc.id)
+        task_ref.delete()
+        public_tasks.document(task_doc.id).delete()
+
+    user_ref.delete()
+
+
+def get_authenticated_uid():
+    current_user = getattr(g, "current_user", None)
+    if isinstance(current_user, dict):
+        return current_user.get("uid")
+    return None
+
+
+def require_auth(view_func):
+    @wraps(view_func)
+    def wrapped(*args, **kwargs):
+        auth_header = request.headers.get("Authorization", "")
+        if not auth_header.startswith("Bearer "):
+            return jsonify({"error": "Missing or invalid authorization token"}), 401
+
+        id_token = auth_header.split("Bearer ", 1)[1].strip()
+
+        try:
+            g.current_user = firebase_auth.verify_id_token(id_token)
+        except Exception:
+            return jsonify({"error": "Unauthorized"}), 401
+
+        return view_func(*args, **kwargs)
+
+    return wrapped
+
+def get_owned_task_ref(task_id):
+    task_ref = db.collection('tasks').document(task_id)
+    task_snapshot = task_ref.get()
+
+    if not getattr(task_snapshot, "exists", False):
+        return None, (jsonify({"error": "Task not found"}), 404)
+
+    task_data = task_snapshot.to_dict() or {}
+    authenticated_uid = get_authenticated_uid()
+    if authenticated_uid and task_data.get("userId") != authenticated_uid:
+        return None, (jsonify({"error": "Forbidden"}), 403)
+
+    return task_ref, None
+>>>>>>> dce7abc (Made it so adding a due date is not necessary anymore & expanded selection of making post public)
+>>>>>>> 9e2797a (Made it so adding a due date is not necessary anymore & expanded selection of making post public)
 
 
 def get_user_task_ref(user_id, task_id):

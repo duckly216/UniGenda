@@ -98,7 +98,11 @@ const TaskForm = ({ onTaskAdded }) => {
                 <select
                 value={priority}
                 onChange={(e) => setPriority(e.target.value)}
+<<<<<<< HEAD
                 className={`priority-select priority-underlined priority-${priority}`}
+=======
+                className={`priority-select priority-${priority}`}
+>>>>>>> 6a5ffc4 (Made it so adding a due date is not necessary anymore & expanded selection of making post public)
                 >
                     <option value="low" className="priority-option">Low Priority</option>
                     <option value="medium" className="priority-option">Medium Priority</option>
