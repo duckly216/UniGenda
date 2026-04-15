@@ -165,3 +165,36 @@
 	opacity: 0.6;
 	cursor: not-allowed;
 }
+
+.priority-select {
+	background-color: #ffffff !important;
+	color: #111827 !important;
+	-webkit-text-fill-color: #111827;
+	border-bottom-width: 4px !important;
+	border-bottom-style: solid !important;
+}
+
+.priority-select:focus,
+.priority-select:active {
+	background-color: #ffffff !important;
+	color: #111827 !important;
+	-webkit-text-fill-color: #111827;
+}
+
+.priority-select.priority-low {
+	border-bottom-color: #16a34a !important;
+}
+
+.priority-select.priority-medium {
+	border-bottom-color: #d3ab09 !important;
+}
+
+.priority-select.priority-high {
+	border-bottom-color: #a80a0a !important;
+}
+
+.priority-select .priority-option,
+.priority-select option {
+	background-color: #ffffff;
+	color: #111827;
+}
