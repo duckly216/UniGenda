@@ -147,9 +147,15 @@ def update_user_profile(uid):
     if not isinstance(data, dict):
         return jsonify({"error": "Invalid or missing request body."}), 400
 
-    allowed_fields = {"firstName", "lastName", "displayName", "email", "phone", "school"}
+    allowed_fields = {"firstName", "lastName", "displayName", "email", "phone", "school", "age"}
     updates = {
-        key: (value.strip() if isinstance(value, str) else value)
+        key: (
+            int(value)
+            if key == "age" and isinstance(value, str) and value.strip().isdigit()
+            else value.strip()
+            if isinstance(value, str)
+            else value
+        )
         for key, value in data.items()
         if key in allowed_fields
     }
