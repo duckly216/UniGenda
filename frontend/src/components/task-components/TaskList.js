@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import { auth } from '../firebase';
+import { auth } from '../../firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import '../styles/TaskRelatedStyles.css';
 
