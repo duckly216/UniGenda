@@ -1,119 +1,13 @@
 import json
-from functools import wraps
 
-from flask import Flask, g, jsonify, request
+from flask import Flask, jsonify, request
 from flask_cors import CORS
-from firebase_admin import auth as firebase_auth
 from firebase_admin import firestore
 from firebase_config import db
 
 app = Flask(__name__)
 CORS(app)
-public_tasks = db.collection('public_tasks')
-
-
-def parse_payload():
-    data = request.get_json(silent=True)
-    if not isinstance(data, dict):
-        if request.form:
-            data = request.form.to_dict(flat=True)
-        elif request.data:
-            try:
-                data = json.loads(request.data.decode('utf-8'))
-            except Exception:
-                data = None
-    return data
-
-
-def normalize_tags(raw_tags):
-    if isinstance(raw_tags, str):
-        return [tag.strip() for tag in raw_tags.split(',') if tag.strip()]
-    if isinstance(raw_tags, list):
-        return [str(tag).strip() for tag in raw_tags if str(tag).strip()]
-    return []
-
-
-def sync_public_task(task_id, task_data):
-    if task_data.get('isPublic'):
-        public_tasks.document(task_id).set(task_data)
-    else:
-        public_tasks.document(task_id).delete()
-
-
-def get_user_task_ref(user_id, task_id):
-    return db.collection('users').document(user_id).collection('tasks').document(task_id)
-
-
-def get_user_public_profile(uid):
-    if not uid:
-        return None
-
-    user_doc = db.collection('users').document(uid).get()
-    if not getattr(user_doc, "exists", False):
-        return None
-
-    user_data = user_doc.to_dict() or {}
-    return {
-        "uid": uid,
-        "displayName": user_data.get("displayName"),
-        "email": user_data.get("email"),
-        "phone": user_data.get("phone"),
-        "school": user_data.get("school"),
-    }
-
-
-def delete_user_documents(uid):
-    if not uid:
-        return
-
-    user_ref = db.collection('users').document(uid)
-    tasks_stream = user_ref.collection('tasks').stream()
-    for task_doc in tasks_stream:
-        task_ref = user_ref.collection('tasks').document(task_doc.id)
-        task_ref.delete()
-        public_tasks.document(task_doc.id).delete()
-
-    user_ref.delete()
-
-
-def get_authenticated_uid():
-    current_user = getattr(g, "current_user", None)
-    if isinstance(current_user, dict):
-        return current_user.get("uid")
-    return None
-
-
-def require_auth(view_func):
-    @wraps(view_func)
-    def wrapped(*args, **kwargs):
-        auth_header = request.headers.get("Authorization", "")
-        if not auth_header.startswith("Bearer "):
-            return jsonify({"error": "Missing or invalid authorization token"}), 401
-
-        id_token = auth_header.split("Bearer ", 1)[1].strip()
-
-        try:
-            g.current_user = firebase_auth.verify_id_token(id_token)
-        except Exception:
-            return jsonify({"error": "Unauthorized"}), 401
-
-        return view_func(*args, **kwargs)
-
-    return wrapped
-
-def get_owned_task_ref(task_id):
-    task_ref = db.collection('tasks').document(task_id)
-    task_snapshot = task_ref.get()
-
-    if not getattr(task_snapshot, "exists", False):
-        return None, (jsonify({"error": "Task not found"}), 404)
-
-    task_data = task_snapshot.to_dict() or {}
-    authenticated_uid = get_authenticated_uid()
-    if authenticated_uid and task_data.get("userId") != authenticated_uid:
-        return None, (jsonify({"error": "Forbidden"}), 403)
-
-    return task_ref, None
+tasks = db.collection('tasks')
 
 @app.route('/')
 def home():
@@ -124,165 +18,13 @@ def test_db():
     db.collection('users').document('test-user').collection('tasks').add({"task": "Test task"})
     return {"message": "Task added"}
 
-
-
-## -- CRUD Operations for Profiles -- ##
-@app.route('/users/<uid>', methods=['GET'])
-def get_user_profile(uid):
-    try:
-        user_doc = db.collection('users').document(uid).get()
-        if not user_doc.exists:
-            return jsonify({"error": "Profile not found"}), 404
-
-        profile = user_doc.to_dict() or {}
-        return jsonify(profile), 200
-    except Exception as e:
-        return jsonify({"error": str(e)}), 400
-
-
-@app.route('/users/<uid>', methods=['PATCH'])
-def update_user_profile(uid):
-    data = parse_payload()
-
-    if not isinstance(data, dict):
-        return jsonify({"error": "Invalid or missing request body."}), 400
-
-    allowed_fields = {"firstName", "lastName", "displayName", "email", "phone", "school", "age"}
-    updates = {
-        key: (
-            int(value)
-            if key == "age" and isinstance(value, str) and value.strip().isdigit()
-            else value.strip()
-            if isinstance(value, str)
-            else value
-        )
-        for key, value in data.items()
-        if key in allowed_fields
-    }
-
-    if not updates:
-        return jsonify({"error": "No valid profile fields to update."}), 400
-
-    updates["updatedAt"] = firestore.SERVER_TIMESTAMP
-
-    try:
-        user_ref = db.collection('users').document(uid)
-        user_ref.set(updates, merge=True)
-        return jsonify({"message": "Profile updated"}), 200
-    except Exception as e:
-        return jsonify({"error": str(e)}), 400
-
-
-@app.route('/reports', methods=['POST'])
-def create_report():
-    data = parse_payload()
-
-    if not isinstance(data, dict):
-        return jsonify({"error": "Invalid or missing request body."}), 400
-
-    user_id = data.get("userId")
-    accused_id = data.get("accusedId")
-    description = (data.get("description") or "").strip()
-
-    if not user_id:
-        return jsonify({"error": "userId is required"}), 400
-    if not accused_id:
-        return jsonify({"error": "accusedId is required"}), 400
-    if not description:
-        return jsonify({"error": "description is required"}), 400
-
-    report_data = {
-        "userId": user_id,
-        "accusedId": accused_id,
-        "description": description,
-        "status": "active",
-        "createdAt": firestore.SERVER_TIMESTAMP,
-    }
-
-    report_ref = db.collection("reports").document()
-    report_ref.set(report_data)
-
-    return jsonify({"id": report_ref.id, "message": "Report submitted"}), 201
-
-
-@app.route('/reports/active', methods=['GET'])
-def get_active_reports():
-    try:
-        report_docs = db.collection("reports").stream()
-        active_reports = []
-
-        for report_doc in report_docs:
-            report_data = report_doc.to_dict() or {}
-            status = report_data.get("status", "active")
-
-            if status != "active":
-                continue
-
-            reporter_id = report_data.get("userId")
-            accused_id = report_data.get("accusedId")
-
-            active_reports.append({
-                "id": report_doc.id,
-                "userId": reporter_id,
-                "accusedId": accused_id,
-                "description": report_data.get("description", ""),
-                "status": status,
-                "createdAt": report_data.get("createdAt"),
-                "reporter": get_user_public_profile(reporter_id),
-                "accused": get_user_public_profile(accused_id),
-            })
-
-        return jsonify(active_reports), 200
-    except Exception as e:
-        return jsonify({"error": str(e)}), 400
-
-
-@app.route('/reports/<report_id>/close', methods=['PATCH'])
-def close_report(report_id):
-    try:
-        report_ref = db.collection("reports").document(report_id)
-        report_doc = report_ref.get()
-
-        if not getattr(report_doc, "exists", False):
-            return jsonify({"error": "Report not found"}), 404
-
-        report_ref.set({
-            "status": "closed",
-            "closedAt": firestore.SERVER_TIMESTAMP,
-        }, merge=True)
-
-        return jsonify({"message": "Report closed"}), 200
-    except Exception as e:
-        return jsonify({"error": str(e)}), 400
-
-
-@app.route('/reports/<report_id>/ban', methods=['POST'])
-def ban_reported_user(report_id):
-    try:
-        report_ref = db.collection("reports").document(report_id)
-        report_doc = report_ref.get()
-
-        if not getattr(report_doc, "exists", False):
-            return jsonify({"error": "Report not found"}), 404
-
-        report_data = report_doc.to_dict() or {}
-        accused_id = report_data.get("accusedId")
-
-        if not accused_id:
-            return jsonify({"error": "accusedId is missing on report"}), 400
-
-        delete_user_documents(accused_id)
-
-        report_ref.set({
-            "status": "banned",
-            "closedAt": firestore.SERVER_TIMESTAMP,
-            "bannedUserId": accused_id,
-        }, merge=True)
-
-        return jsonify({"message": "User banned and removed from Firestore"}), 200
-    except Exception as e:
-        return jsonify({"error": str(e)}), 400
-## -- CRUD Operations for Tasks -- ##
+@app.route('/tasks')
+def get_tasks():
+    task_list = []
+    for task in tasks.stream():
+        task_list.append(task.to_dict())
+    return jsonify(task_list)
+## -- CRUD Operations -- ##
 # CREATE
 @app.route('/users/<uid>/tasks', methods=['POST'])
 def add_task(uid):
@@ -306,7 +48,7 @@ def add_task(uid):
         "title": data.get('title'),
         "description": data.get('description'),
         "dueDate": data.get("dueDate"),
-        "userId": user_id, # The student's User ID from Auth
+        "userId": user_id,
         "priority": data.get("priority", "medium"),
         "visibility": "public" if is_public else "private",
         "isPublic": is_public,
@@ -314,33 +56,14 @@ def add_task(uid):
         "status": "pending",
         "createdAt": firestore.SERVER_TIMESTAMP
     }
-
-    # Store task only in user-scoped subcollection
-    user_ref = db.collection('users').document(user_id)
-    user_ref.set({"updatedAt": firestore.SERVER_TIMESTAMP}, merge=True)
-
-    task_ref = user_ref.collection('tasks').document()
-    task_id = task_ref.id
-    task_ref.set(new_task)
-
-    sync_public_task(task_id, new_task)
-
-    return jsonify({"id": task_id, "message": "Task created"}), 201
-
-# Might have to 
-
+    doc_ref = db.collection('tasks').add(new_task)
+    return jsonify({"id": doc_ref[1].id, "message": "Task created"}), 201
 # READ
 @app.route('/users/<uid>/tasks', methods=['GET'])
 def get_user_tasks(uid):
-    # Default limit of fetching amount is 20
     limit = request.args.get('limit', default=20, type=int)
-    authenticated_uid = get_authenticated_uid()
-
-    if authenticated_uid and uid != authenticated_uid:
-        return jsonify({"error": "Forbidden"}), 403
-
-    try:
-        # User-scoped tasks collection
+    
+    try: 
         scoped_tasks = db.collection('users') \
             .document(uid) \
             .collection('tasks') \
@@ -351,8 +74,21 @@ def get_user_tasks(uid):
 
         return jsonify(task_list), 200
     except Exception as e:
-        # if index has not been created, Firestore returns error
         return jsonify({"error": str(e)}), 400
+    
+#comments
+@app.route('/tasks/<task_id>/comments', methods=['GET'])
+def get_task_comments(task_id):
+    try:
+        task_comments = db.collection('comments') \
+            .where('taskId', '==', task_id) \
+            .order_by('createdAt', direction=firestore.Query.ASCENDING) \
+            .stream()
+        comment_list = [comment.to_dict() | {"id": comment.id} for comment in task_comments]
+        return jsonify(comment_list), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 400
+    
 # UPDATE
 @app.route('/users/<uid>/tasks/<task_id>', methods=['PATCH'])
 def update_task(uid, task_id):
@@ -398,15 +134,17 @@ def update_task(uid, task_id):
     sync_public_task(task_id, updated_task)
 
     return jsonify({"message": "Task updated"}), 200
+
 # DELETE
-@app.route('/users/<uid>/tasks/<task_id>', methods=['DELETE'])
-def delete_task(uid, task_id):
-    if not uid:
+@app.route('/users/<uid>/tasks', methods=['DELETE'])
+def delete_task(task_id):
+    user_id = request.args.get("userId")
+    if not user_id:
         return jsonify({"error": "userId is required"}), 400
 
-    task_snapshot = get_user_task_ref(uid, task_id).get()
+    task_snapshot = get_user_task_ref(user_id, task_id).get()
     if task_snapshot.exists:
-        get_user_task_ref(uid, task_id).delete()
+        get_user_task_ref(user_id, task_id).delete()
     public_tasks.document(task_id).delete()
 
     return jsonify({"message": "Task deleted"}), 200
@@ -519,229 +257,6 @@ def delete_public_task(task_id):
     public_tasks.document(task_id).delete()
 
     return jsonify({"message": "Task deleted"}), 200
-## -- --------------- -- ##
-
-## -- Friends -- ##
-
-@app.route('/users/search', methods=['GET'])
-def search_users():
-    q = request.args.get('q', '').strip()
-    if not q:
-        return jsonify([]), 200
-
-    try:
-        results = []
-        query = (
-            db.collection('users')
-            .where('displayName', '>=', q)
-            .where('displayName', '<=', q + '\uf8ff')
-            .limit(10)
-            .stream()
-        )
-        for doc in query:
-            data = doc.to_dict() or {}
-            results.append({
-                "uid": doc.id,
-                "displayName": data.get("displayName"),
-                "school": data.get("school"),
-            })
-        return jsonify(results), 200
-    except Exception as e:
-        return jsonify({"error": str(e)}), 400
-
-
-@app.route('/friend_requests', methods=['POST'])
-@require_auth
-def send_friend_request():
-    from_uid = get_authenticated_uid()
-    data = parse_payload()
-
-    if not isinstance(data, dict):
-        return jsonify({"error": "Invalid or missing request body."}), 400
-
-    to_uid = (data.get("toUid") or "").strip()
-    if not to_uid:
-        return jsonify({"error": "toUid is required"}), 400
-    if to_uid == from_uid:
-        return jsonify({"error": "Cannot send a friend request to yourself"}), 400
-
-    existing_friend = db.collection('users').document(from_uid).collection('friends').document(to_uid).get()
-    if getattr(existing_friend, "exists", False):
-        return jsonify({"error": "Already friends"}), 409
-
-    for _ in (
-        db.collection('friend_requests')
-        .where('fromUid', '==', from_uid)
-        .where('toUid', '==', to_uid)
-        .where('status', '==', 'pending')
-        .limit(1)
-        .stream()
-    ):
-        return jsonify({"error": "Friend request already sent"}), 409
-
-    for _ in (
-        db.collection('friend_requests')
-        .where('fromUid', '==', to_uid)
-        .where('toUid', '==', from_uid)
-        .where('status', '==', 'pending')
-        .limit(1)
-        .stream()
-    ):
-        return jsonify({"error": "This user has already sent you a friend request"}), 409
-
-    request_ref = db.collection('friend_requests').document()
-    request_ref.set({
-        "fromUid": from_uid,
-        "toUid": to_uid,
-        "status": "pending",
-        "sentAt": firestore.SERVER_TIMESTAMP,
-    })
-    return jsonify({"id": request_ref.id, "message": "Friend request sent"}), 201
-
-
-@app.route('/friend_requests', methods=['GET'])
-@require_auth
-def get_friend_requests():
-    uid = get_authenticated_uid()
-
-    try:
-        incoming = []
-        for doc in (
-            db.collection('friend_requests')
-            .where('toUid', '==', uid)
-            .where('status', '==', 'pending')
-            .stream()
-        ):
-            d = doc.to_dict() or {}
-            incoming.append({
-                "id": doc.id,
-                "fromUid": d.get("fromUid"),
-                "toUid": d.get("toUid"),
-                "status": d.get("status"),
-                "fromProfile": get_user_public_profile(d.get("fromUid")),
-            })
-
-        outgoing = []
-        for doc in (
-            db.collection('friend_requests')
-            .where('fromUid', '==', uid)
-            .where('status', '==', 'pending')
-            .stream()
-        ):
-            d = doc.to_dict() or {}
-            outgoing.append({
-                "id": doc.id,
-                "fromUid": d.get("fromUid"),
-                "toUid": d.get("toUid"),
-                "status": d.get("status"),
-                "toProfile": get_user_public_profile(d.get("toUid")),
-            })
-
-        return jsonify({"incoming": incoming, "outgoing": outgoing}), 200
-    except Exception as e:
-        return jsonify({"error": str(e)}), 400
-
-
-@app.route('/friend_requests/<request_id>', methods=['PATCH'])
-@require_auth
-def respond_to_friend_request(request_id):
-    uid = get_authenticated_uid()
-    data = parse_payload()
-
-    if not isinstance(data, dict):
-        return jsonify({"error": "Invalid or missing request body."}), 400
-
-    action = (data.get("action") or "").strip()
-    if action not in ("accept", "reject"):
-        return jsonify({"error": "action must be 'accept' or 'reject'"}), 400
-
-    request_ref = db.collection('friend_requests').document(request_id)
-    request_doc = request_ref.get()
-
-    if not getattr(request_doc, "exists", False):
-        return jsonify({"error": "Friend request not found"}), 404
-
-    request_data = request_doc.to_dict() or {}
-
-    if request_data.get("toUid") != uid:
-        return jsonify({"error": "Forbidden"}), 403
-    if request_data.get("status") != "pending":
-        return jsonify({"error": "Request is no longer pending"}), 409
-
-    if action == "reject":
-        request_ref.set({"status": "rejected"}, merge=True)
-        return jsonify({"message": "Friend request rejected"}), 200
-
-    from_uid = request_data.get("fromUid")
-    from_profile = get_user_public_profile(from_uid) or {}
-    to_profile = get_user_public_profile(uid) or {}
-
-    db.collection('users').document(from_uid).collection('friends').document(uid).set({
-        "displayName": to_profile.get("displayName"),
-        "school": to_profile.get("school"),
-        "addedAt": firestore.SERVER_TIMESTAMP,
-    })
-    db.collection('users').document(uid).collection('friends').document(from_uid).set({
-        "displayName": from_profile.get("displayName"),
-        "school": from_profile.get("school"),
-        "addedAt": firestore.SERVER_TIMESTAMP,
-    })
-
-    request_ref.set({"status": "accepted"}, merge=True)
-    return jsonify({"message": "Friend request accepted"}), 200
-
-
-@app.route('/friend_requests/<request_id>', methods=['DELETE'])
-@require_auth
-def cancel_friend_request(request_id):
-    uid = get_authenticated_uid()
-
-    request_ref = db.collection('friend_requests').document(request_id)
-    request_doc = request_ref.get()
-
-    if not getattr(request_doc, "exists", False):
-        return jsonify({"error": "Friend request not found"}), 404
-
-    request_data = request_doc.to_dict() or {}
-
-    if request_data.get("fromUid") != uid:
-        return jsonify({"error": "Forbidden"}), 403
-    if request_data.get("status") != "pending":
-        return jsonify({"error": "Can only cancel pending requests"}), 409
-
-    request_ref.delete()
-    return jsonify({"message": "Friend request cancelled"}), 200
-
-
-@app.route('/users/<uid>/friends', methods=['GET'])
-def get_friends(uid):
-    try:
-        friends = []
-        for doc in db.collection('users').document(uid).collection('friends').stream():
-            d = doc.to_dict() or {}
-            friends.append({
-                "uid": doc.id,
-                "displayName": d.get("displayName"),
-                "school": d.get("school"),
-            })
-        return jsonify(friends), 200
-    except Exception as e:
-        return jsonify({"error": str(e)}), 400
-
-
-@app.route('/users/<uid>/friends/<friend_uid>', methods=['DELETE'])
-@require_auth
-def remove_friend(uid, friend_uid):
-    authenticated_uid = get_authenticated_uid()
-
-    if authenticated_uid != uid:
-        return jsonify({"error": "Forbidden"}), 403
-
-    db.collection('users').document(uid).collection('friends').document(friend_uid).delete()
-    db.collection('users').document(friend_uid).collection('friends').document(uid).delete()
-
-    return jsonify({"message": "Friend removed"}), 200
-
 ## -- --------------- -- ##
 
 if __name__ == '__main__':
