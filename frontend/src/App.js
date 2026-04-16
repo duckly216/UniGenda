@@ -10,6 +10,7 @@ import Calendar from "./components/Calendar";
 import ProfilePage from "./components/ProfilePage";
 import ModerationPage from "./components/ModerationPage";
 import FriendsPage from "./components/FriendsPage";
+import TaskListPage from "./components/task-components/TaskListPage";
 import "./styles/Home.css";
 import ProtectedRoute from "./components/ProtectedRoute";
 
@@ -114,7 +115,9 @@ function App() {
             <ProtectedRoute user={currentUser} authLoading={authLoading}>
               <div style={{ display: "flex" }}>
                 <NavBar user={currentUser} />
-                <div style={{ marginLeft: "60px", flex: 1 }}></div>
+                <div style={{ marginLeft: "60px", flex: 1 }}>
+                  <TaskListPage />
+                </div>
               </div>
             </ProtectedRoute>
           }
