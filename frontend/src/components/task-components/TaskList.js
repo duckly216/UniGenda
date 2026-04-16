@@ -2,9 +2,9 @@ import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { auth } from '../../firebase';
 import { onAuthStateChanged } from 'firebase/auth';
-import '../styles/TaskRelatedStyles.css';
+import '../../styles/TaskRelatedStyles.css';
 
-const TaskList = ({ refreshTrigger }) => {
+const TaskList = ({ refreshTrigger, limit = 10, showAllStatuses = false }) => {
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [uid, setUid] = useState(null);
@@ -31,8 +31,8 @@ const TaskList = ({ refreshTrigger }) => {
 
     const fetchTasks = async () => {
       try {
-        // Fetching sorted/limited tasks from your Flask API
-        const response = await axios.get(`http://127.0.0.1:5000/users/${uid}/tasks?limit=10`);
+        const limitParam = Number.isInteger(limit) && limit > 0 ? `?limit=${limit}` : '';
+        const response = await axios.get(`http://127.0.0.1:5000/users/${uid}/tasks${limitParam}`);
         setTasks(Array.isArray(response.data) ? response.data : []);
       } catch (err) {
         console.error("Error fetching tasks:", err);
@@ -166,159 +166,185 @@ const TaskList = ({ refreshTrigger }) => {
     }
   };
 
+  const completedTasks = tasks.filter((task) => task.status === 'completed');
+  const uncompletedTasks = tasks.filter((task) => task.status !== 'completed');
+
   // Filter tasks based on active tab
-  const filteredTasks = tasks.filter((task) => {
-    if (activeTab === 'completed') {
-      return task.status === 'completed';
-    } else {
-      return task.status !== 'completed';
-    }
-  });
+  const filteredTasks = activeTab === 'completed' ? completedTasks : uncompletedTasks;
 
-  return (
-    <div className="task-list">
-      {/* Tabs for filtering */}
-      <div className="task-list-tabs">
-        <button
-          className={`task-list-tab ${activeTab === 'uncompleted' ? 'active' : ''}`}
-          onClick={() => setActiveTab('uncompleted')}
-        >
-          Uncompleted
-        </button>
-        <button
-          className={`task-list-tab ${activeTab === 'completed' ? 'active' : ''}`}
-          onClick={() => setActiveTab('completed')}
-        >
-          Completed
-        </button>
-      </div>
+  const renderTaskItems = (taskItems) => (
+    taskItems.map(task => (
+      <div
+        key={task.id}
+        className={`task-item task-item-with-confirmation priority-underlined priority-${task.priority || 'medium'}`}
+      >
+        <div className={`task-item-content ${confirmingTaskId === task.id ? 'task-item-obscured' : ''}`}>
+          <div className="task-item-header-row">
+            <div className="task-item-checkbox-wrapper">
+              <input
+                type="checkbox"
+                className="task-item-checkbox"
+                checked={task.status === 'completed'}
+                onChange={() => toggleTaskCompletion(task)}
+                disabled={deletingTaskId === task.id}
+              />
+            </div>
 
-      {loading && <p>Loading tasks...</p>}
-      {filteredTasks.length > 0 ? (
-        filteredTasks.map(task => (
-          <div
-            key={task.id}
-            className={`task-item task-item-with-confirmation priority-underlined priority-${task.priority || 'medium'}`}
-          >
-            <div className={`task-item-content ${confirmingTaskId === task.id ? 'task-item-obscured' : ''}`}>
-              <div className="task-item-header-row">
-                <div className="task-item-checkbox-wrapper">
-                  <input
-                    type="checkbox"
-                    className="task-item-checkbox"
-                    checked={task.status === 'completed'}
-                    onChange={() => toggleTaskCompletion(task)}
-                    disabled={deletingTaskId === task.id}
-                  />
-                </div>
+            <div className="task-item-summary">
+              <div className="task-item-title-row">
+                <h4>{task.title}</h4>
+                <small className="task-item-due-inline">Due: {task.dueDate || 'No due date'}</small>
+              </div>
+            </div>
 
-                <div className="task-item-summary">
-                  <div className="task-item-title-row">
-                    <h4>{task.title}</h4>
-                    <small className="task-item-due-inline">Due: {task.dueDate || 'No due date'}</small>
-                  </div>
-                </div>
+            <div className="task-item-actions">
+              <button
+                type="button"
+                className="task-menu-button"
+                aria-label="Task options"
+                aria-haspopup="menu"
+                aria-expanded={openMenuTaskId === task.id}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setOpenMenuTaskId((prev) => (prev === task.id ? null : task.id));
+                }}
+                disabled={deletingTaskId === task.id}
+              >
+                ⋯
+              </button>
 
-                <div className="task-item-actions">
+              {openMenuTaskId === task.id && (
+                <div className="task-item-menu" role="menu">
                   <button
                     type="button"
-                    className="task-menu-button"
-                    aria-label="Task options"
-                    aria-haspopup="menu"
-                    aria-expanded={openMenuTaskId === task.id}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setOpenMenuTaskId((prev) => (prev === task.id ? null : task.id));
+                    className="task-item-menu-option"
+                    onClick={() => {
+                      toggleTaskDetails(task.id);
+                      setOpenMenuTaskId(null);
                     }}
-                    disabled={deletingTaskId === task.id}
                   >
-                    ⋯
+                    {expandedTaskIds[task.id] ? 'Hide Details' : 'Show Details'}
                   </button>
-
-                  {openMenuTaskId === task.id && (
-                    <div className="task-item-menu" role="menu">
-                      <button
-                        type="button"
-                        className="task-item-menu-option"
-                        onClick={() => {
-                          toggleTaskDetails(task.id);
-                          setOpenMenuTaskId(null);
-                        }}
-                      >
-                        {expandedTaskIds[task.id] ? 'Hide Details' : 'Show Details'}
-                      </button>
-                      <button
-                        type="button"
-                        className="task-item-menu-option"
-                        onClick={() => editTask(task)}
-                      >
-                        Edit Task
-                      </button>
-                      {confirmingTaskId !== task.id && (
-                        <button
-                          type="button"
-                          className="task-item-menu-option danger"
-                          onClick={() => {
-                            setConfirmingTaskId(task.id);
-                            setOpenMenuTaskId(null);
-                          }}
-                          disabled={deletingTaskId === task.id}
-                        >
-                          {deletingTaskId === task.id ? 'Deleting...' : 'Delete Task'}
-                        </button>
-                      )}
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {expandedTaskIds[task.id] && (
-                <div className="task-item-details">
-                  <p>{task.description || "No description."}</p>
-                  {Array.isArray(task.tags) && task.tags.length > 0 ? (
-                    <small>Tags: {task.tags.join(', ')}</small>
-                  ) : (
-                    <small>Tags: None</small>
+                  <button
+                    type="button"
+                    className="task-item-menu-option"
+                    onClick={() => editTask(task)}
+                  >
+                    Edit Task
+                  </button>
+                  {confirmingTaskId !== task.id && (
+                    <button
+                      type="button"
+                      className="task-item-menu-option danger"
+                      onClick={() => {
+                        setConfirmingTaskId(task.id);
+                        setOpenMenuTaskId(null);
+                      }}
+                      disabled={deletingTaskId === task.id}
+                    >
+                      {deletingTaskId === task.id ? 'Deleting...' : 'Delete Task'}
+                    </button>
                   )}
                 </div>
               )}
-
             </div>
+          </div>
 
-            {confirmingTaskId === task.id && (
-              <div className="task-delete-confirmation-overlay">
-                <p>Are you sure you want to delete this task?</p>
-                <div className="task-delete-confirmation-actions">
-                  <button
-                    type="button"
-                    className="delete-task-button confirm-yes"
-                    onClick={() => confirmDeleteTask(task.id)}
-                    disabled={deletingTaskId === task.id}
-                  >
-                    {deletingTaskId === task.id ? 'Deleting...' : 'Yes'}
-                  </button>
-                  <button
-                    type="button"
-                    className="delete-task-button confirm-no"
-                    onClick={() => setConfirmingTaskId(null)}
-                    disabled={deletingTaskId === task.id}
-                  >
-                    No
-                  </button>
-                </div>
+          {expandedTaskIds[task.id] && (
+            <div className="task-item-details">
+              <p>{task.description || "No description."}</p>
+              {Array.isArray(task.tags) && task.tags.length > 0 ? (
+                <small>Tags: {task.tags.join(', ')}</small>
+              ) : (
+                <small>Tags: None</small>
+              )}
+            </div>
+          )}
+
+        </div>
+
+        {confirmingTaskId === task.id && (
+          <div className="task-delete-confirmation-overlay">
+            <p>Are you sure you want to delete this task?</p>
+            <div className="task-delete-confirmation-actions">
+              <button
+                type="button"
+                className="delete-task-button confirm-yes"
+                onClick={() => confirmDeleteTask(task.id)}
+                disabled={deletingTaskId === task.id}
+              >
+                {deletingTaskId === task.id ? 'Deleting...' : 'Yes'}
+              </button>
+              <button
+                type="button"
+                className="delete-task-button confirm-no"
+                onClick={() => setConfirmingTaskId(null)}
+                disabled={deletingTaskId === task.id}
+              >
+                No
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    ))
+  );
+
+  return (
+    <div className="task-list">
+      {loading && <p>Loading tasks...</p>}
+      {!showAllStatuses && (
+        <div className="task-list-tabs">
+          <button
+            className={`task-list-tab ${activeTab === 'uncompleted' ? 'active' : ''}`}
+            onClick={() => setActiveTab('uncompleted')}
+          >
+            Uncompleted
+          </button>
+          <button
+            className={`task-list-tab ${activeTab === 'completed' ? 'active' : ''}`}
+            onClick={() => setActiveTab('completed')}
+          >
+            Completed
+          </button>
+        </div>
+      )}
+
+      {!showAllStatuses ? (
+        filteredTasks.length > 0 ? (
+          renderTaskItems(filteredTasks)
+        ) : (
+          <div className="empty-tasks">
+            <p>
+              {activeTab === 'completed'
+                ? 'No completed tasks. Get started with uncompleted tasks!'
+                : 'No upcoming tasks. Enjoy your free time!'}
+            </p>
+          </div>
+        )
+      ) : (
+        <div className="task-list-dual-sections">
+          <section className="task-list-dual-section">
+            <h3 className="task-list-dual-section-title">Uncompleted</h3>
+            {uncompletedTasks.length > 0 ? (
+              renderTaskItems(uncompletedTasks)
+            ) : (
+              <div className="empty-tasks">
+                <p>No upcoming tasks. Enjoy your free time!</p>
               </div>
             )}
-          </div>
-        ))
-      ) : (
-        /* No tasks state on the dashboard */
-        <div className="empty-tasks">
-          
-          <p>
-            {activeTab === 'completed'
-              ? 'No completed tasks. Get started with uncompleted tasks!'
-              : 'No upcoming tasks. Enjoy your free time!'}
-          </p>
+          </section>
+
+          <section className="task-list-dual-section">
+            <h3 className="task-list-dual-section-title">Completed</h3>
+            {completedTasks.length > 0 ? (
+              renderTaskItems(completedTasks)
+            ) : (
+              <div className="empty-tasks">
+                <p>No completed tasks. Get started with uncompleted tasks!</p>
+              </div>
+            )}
+          </section>
         </div>
       )}
     </div>
