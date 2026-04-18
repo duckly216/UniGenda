@@ -1,4 +1,5 @@
 import json
+import re
 from datetime import datetime, timedelta, timezone
 from functools import wraps
 
@@ -11,6 +12,7 @@ from firebase_config import db
 app = Flask(__name__)
 CORS(app)
 public_tasks = db.collection('public_tasks')
+task_tag_catalog = db.collection('task_tag_catalog')
 
 
 def parse_payload():
@@ -32,6 +34,19 @@ def normalize_tags(raw_tags):
     if isinstance(raw_tags, list):
         return [str(tag).strip() for tag in raw_tags if str(tag).strip()]
     return []
+
+
+def normalize_tag_name(raw_tag):
+    if raw_tag is None:
+        return None
+
+    tag = str(raw_tag).strip().lower()
+    if not tag:
+        return None
+
+    tag = re.sub(r"\s+", "-", tag)
+    tag = re.sub(r"[^a-z0-9\-_]", "", tag)
+    return tag[:40] or None
 
 
 def normalize_due_date(raw_due_date):
@@ -265,6 +280,79 @@ def update_user_profile(uid):
         return jsonify({"message": "Profile updated"}), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 400
+
+
+@app.route('/task_tags', methods=['GET'])
+def get_task_tags():
+    try:
+        tag_set = {}
+
+        for tag_doc in task_tag_catalog.stream():
+            tag_data = tag_doc.to_dict() or {}
+            normalized_tag = normalize_tag_name(tag_data.get("name") or tag_doc.id)
+            if normalized_tag:
+                tag_set[normalized_tag] = True
+
+        tags = sorted(tag_set.keys())
+        return jsonify(tags), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 400
+
+
+@app.route('/task_tags', methods=['POST'])
+def add_task_tag():
+    data = parse_payload()
+    if not isinstance(data, dict):
+        return jsonify({"error": "Invalid or missing request body."}), 400
+
+    user_id = data.get("userId")
+    if not user_id:
+        return jsonify({"error": "userId is required"}), 400
+
+    user_doc = db.collection('users').document(user_id).get()
+    user_data = user_doc.to_dict() or {}
+    if not user_data.get("isAdmin"):
+        return jsonify({"error": "Only admins can add tags"}), 403
+
+    tag_name = normalize_tag_name(data.get("tag"))
+    if not tag_name:
+        return jsonify({"error": "tag is required"}), 400
+
+    task_tag_catalog.document(tag_name).set({
+        "name": tag_name,
+        "createdBy": user_id,
+        "createdAt": firestore.SERVER_TIMESTAMP,
+    }, merge=True)
+
+    return jsonify({"message": "Tag added", "tag": tag_name}), 201
+
+
+@app.route('/task_tags/<tag_name>', methods=['DELETE'])
+def delete_task_tag(tag_name):
+    normalized_tag = normalize_tag_name(tag_name)
+    if not normalized_tag:
+        return jsonify({"error": "Valid tag name is required"}), 400
+
+    user_id = request.args.get("userId")
+    if not user_id:
+        data = parse_payload()
+        if isinstance(data, dict):
+            user_id = data.get("userId")
+    if not user_id:
+        return jsonify({"error": "userId is required"}), 400
+
+    user_doc = db.collection('users').document(user_id).get()
+    user_data = user_doc.to_dict() or {}
+    if not user_data.get("isAdmin"):
+        return jsonify({"error": "Only admins can delete tags"}), 403
+
+    tag_ref = task_tag_catalog.document(normalized_tag)
+    tag_doc = tag_ref.get()
+    if not getattr(tag_doc, "exists", False):
+        return jsonify({"error": "Tag not found"}), 404
+
+    tag_ref.delete()
+    return jsonify({"message": "Tag deleted", "tag": normalized_tag}), 200
 
 
 @app.route('/reports', methods=['POST'])

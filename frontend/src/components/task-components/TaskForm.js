@@ -11,18 +11,12 @@ const TaskForm = ({ onTaskAdded }) => {
     const [visibility, setVisibility] = useState('private');
     const [peopleNeeded, setPeopleNeeded] = useState('');
     const [description, setDescription] = useState('');
-    const [tags, setTags] = useState('');
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         const user = auth.currentUser;
 
         if(!user) return; // user does not exist
-
-        const parsedTags = tags
-            .split(',')
-            .map((tag) => tag.trim())
-            .filter((tag) => tag.length > 0);
 
         if (visibility === 'public' && peopleNeeded !== '') {
             const parsedPeopleNeeded = Number(peopleNeeded);
@@ -40,8 +34,7 @@ const TaskForm = ({ onTaskAdded }) => {
             priority: priority,
             visibility: visibility,
             isPublic: visibility === 'public',
-            peopleNeeded: visibility === 'public' && peopleNeeded !== '' ? Number(peopleNeeded) : null,
-            tags: parsedTags
+            peopleNeeded: visibility === 'public' && peopleNeeded !== '' ? Number(peopleNeeded) : null
         };
 
         try{
@@ -53,7 +46,6 @@ const TaskForm = ({ onTaskAdded }) => {
             setVisibility('private');
             setPeopleNeeded('');
             setDescription('');
-            setTags('');
             if(onTaskAdded) onTaskAdded(); // Refreshes the list after adding
         } catch(err) {
             console.error("Error adding task: ", err);
@@ -133,12 +125,6 @@ const TaskForm = ({ onTaskAdded }) => {
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 rows={3}
-                />
-                <input
-                type="text"
-                placeholder="Tags (comma-separated, e.g., exam, math, group-work)"
-                value={tags}
-                onChange={(e) => setTags(e.target.value)}
                 />
                 <button type="submit">Add to UniGenda</button>
         </form>
