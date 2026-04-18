@@ -33,6 +33,35 @@ def normalize_tags(raw_tags):
     return []
 
 
+def normalize_due_date(raw_due_date):
+    if raw_due_date is None:
+        return None
+    if isinstance(raw_due_date, str):
+        due_date = raw_due_date.strip()
+        return due_date or None
+    return raw_due_date
+
+
+def normalize_people_needed(raw_people_needed):
+    if raw_people_needed is None:
+        return None, None
+
+    if isinstance(raw_people_needed, str):
+        raw_people_needed = raw_people_needed.strip()
+        if not raw_people_needed:
+            return None, None
+
+    try:
+        people_needed = int(raw_people_needed)
+    except (TypeError, ValueError):
+        return None, "peopleNeeded must be an integer between 1 and 10"
+
+    if people_needed < 1 or people_needed > 10:
+        return None, "peopleNeeded must be between 1 and 10"
+
+    return people_needed, None
+
+
 def sync_public_task(task_id, task_data):
     if task_data.get('isPublic'):
         public_tasks.document(task_id).set(task_data)
@@ -302,14 +331,20 @@ def add_task(uid):
     if not data.get('title'):
         return jsonify({"error": "title is required"}), 400
 
+    due_date = normalize_due_date(data.get("dueDate"))
+    people_needed, people_needed_error = normalize_people_needed(data.get("peopleNeeded"))
+    if people_needed_error:
+        return jsonify({"error": people_needed_error}), 400
+
     new_task = {
         "title": data.get('title'),
         "description": data.get('description'),
-        "dueDate": data.get("dueDate"),
+        "dueDate": due_date,
         "userId": user_id, # The student's User ID from Auth
         "priority": data.get("priority", "medium"),
         "visibility": "public" if is_public else "private",
         "isPublic": is_public,
+        "peopleNeeded": people_needed if is_public else None,
         "tags": tags,
         "status": "pending",
         "createdAt": firestore.SERVER_TIMESTAMP
@@ -377,17 +412,24 @@ def update_task(uid, task_id):
     if "description" in data:
         updates["description"] = data.get("description")
     if "dueDate" in data:
-        updates["dueDate"] = data.get("dueDate")
+        updates["dueDate"] = normalize_due_date(data.get("dueDate"))
     if "status" in data:
         updates["status"] = data.get("status")
     if "priority" in data:
         updates["priority"] = data.get("priority")
     if "tags" in data:
         updates["tags"] = normalize_tags(data.get("tags"))
+    if "peopleNeeded" in data:
+        people_needed, people_needed_error = normalize_people_needed(data.get("peopleNeeded"))
+        if people_needed_error:
+            return jsonify({"error": people_needed_error}), 400
+        updates["peopleNeeded"] = people_needed
     if "visibility" in data or "isPublic" in data:
         next_public = bool(data.get("isPublic", data.get("visibility") == "public"))
         updates["isPublic"] = next_public
         updates["visibility"] = "public" if next_public else "private"
+        if not next_public:
+            updates["peopleNeeded"] = None
 
     if not updates:
         return jsonify({"error": "No valid fields to update"}), 400
@@ -429,14 +471,20 @@ def add_public_task():
     if not data.get('title'):
         return jsonify({"error": "title is required"}), 400
 
+    due_date = normalize_due_date(data.get("dueDate"))
+    people_needed, people_needed_error = normalize_people_needed(data.get("peopleNeeded"))
+    if people_needed_error:
+        return jsonify({"error": people_needed_error}), 400
+
     new_task = {
         "title": data.get('title'),
         "description": data.get('description'),
-        "dueDate": data.get("dueDate"),
+        "dueDate": due_date,
         "userId": user_id,
         "priority": data.get("priority", "medium"),
         "visibility": "public",
         "isPublic": True,
+        "peopleNeeded": people_needed,
         "tags": tags,
         "status": "pending",
         "createdAt": firestore.SERVER_TIMESTAMP
@@ -482,13 +530,18 @@ def update_public_task(task_id):
     if "description" in data:
         updates["description"] = data.get("description")
     if "dueDate" in data:
-        updates["dueDate"] = data.get("dueDate")
+        updates["dueDate"] = normalize_due_date(data.get("dueDate"))
     if "status" in data:
         updates["status"] = data.get("status")
     if "priority" in data:
         updates["priority"] = data.get("priority")
     if "tags" in data:
         updates["tags"] = normalize_tags(data.get("tags"))
+    if "peopleNeeded" in data:
+        people_needed, people_needed_error = normalize_people_needed(data.get("peopleNeeded"))
+        if people_needed_error:
+            return jsonify({"error": people_needed_error}), 400
+        updates["peopleNeeded"] = people_needed
 
     task_ref.set(updates, merge=True)
 
