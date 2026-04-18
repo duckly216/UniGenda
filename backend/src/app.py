@@ -197,8 +197,18 @@ def add_task(uid):
         "status": "pending",
         "createdAt": firestore.SERVER_TIMESTAMP
     }
-    doc_ref = db.collection('tasks').add(new_task)
-    return jsonify({"id": doc_ref[1].id, "message": "Task created"}), 201
+
+    user_ref = db.collection('users').document(user_id)
+    user_ref.set({"updatedAt": firestore.SERVER_TIMESTAMP}, merge=True)
+
+    task_ref = user_ref.collection('tasks').document()
+    task_id = task_ref.id
+    task_ref.set(new_task)
+
+    if is_public:
+        public_tasks.document(task_id).set(new_task)
+
+    return jsonify({"id": task_id, "message": "Task created"}), 201
 # READ
 @app.route('/users/<uid>/tasks', methods=['GET'])
 def get_user_tasks(uid):
@@ -217,18 +227,34 @@ def get_user_tasks(uid):
     except Exception as e:
         return jsonify({"error": str(e)}), 400
     
-#comments
+#get_comment
 @app.route('/tasks/<task_id>/comments', methods=['GET'])
 def get_task_comments(task_id):
     try:
-        task_comments = db.collection('comments') \
-            .where('taskId', '==', task_id) \
-            .order_by('createdAt', direction=firestore.Query.ASCENDING) \
+        task_comments = db.collection('public_tasks') \
+            .document(task_id) \
+            .collection('comments') \
+            .order_by('timestamp', direction=firestore.Query.ASCENDING) \
             .stream()
         comment_list = [comment.to_dict() | {"id": comment.id} for comment in task_comments]
         return jsonify(comment_list), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 400
+    
+#post_comment
+@app.route('/tasks/<task_id>/comments', methods=['POST'])
+def add_comment(task_id):
+    data = request.json
+
+    comment = {
+        "text": data.get("text"),
+        "user_id": data.get("user_id"),
+        "timestamp": firestore.SERVER_TIMESTAMP
+    }
+
+    db.collection('public_tasks').document(task_id).collection('comments').add(comment)
+
+    return jsonify({"message": "Comment added"}), 201
     
 # UPDATE
 @app.route('/users/<uid>/tasks/<task_id>', methods=['PATCH'])
@@ -284,8 +310,8 @@ def update_task(uid, task_id):
     return jsonify({"message": "Task updated"}), 200
 
 # DELETE
-@app.route('/users/<uid>/tasks', methods=['DELETE'])
-def delete_task(task_id):
+@app.route('/users/<uid>/tasks/<task_id>', methods=['DELETE'])
+def delete_task(uid, task_id):
     user_id = request.args.get("userId")
     if not user_id:
         return jsonify({"error": "userId is required"}), 400
