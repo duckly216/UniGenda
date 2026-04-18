@@ -142,7 +142,6 @@ def get_owned_task_ref(task_id):
         return None, (jsonify({"error": "Forbidden"}), 403)
 
     return task_ref, None
->>>>>>> dce7abc (Made it so adding a due date is not necessary anymore & expanded selection of making post public)
 
 @app.route('/')
 def home():
