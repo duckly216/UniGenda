@@ -6,6 +6,7 @@ import { useNavigate } from "react-router-dom";
 import "../styles/Dashboard.css";
 import TaskForm from './task-components/TaskForm';
 import TaskList from './task-components/TaskList';
+import LoadingPage from "./LoadingPage";
 
 
 const Dashboard = () => {
@@ -16,6 +17,7 @@ const Dashboard = () => {
     const [showCreateTaskPopup, setShowCreateTaskPopup] = useState(false);
     const [myPublicTasks, setMyPublicTasks] = useState([]);
     const [loadingMyPublicTasks, setLoadingMyPublicTasks] = useState(false);
+    const [loadingProfile, setLoadingProfile] = useState(true);
     const [editingPublicTask, setEditingPublicTask] = useState(null);
     const [savingPublicTask, setSavingPublicTask] = useState(false);
     const [editPublicForm, setEditPublicForm] = useState({
@@ -33,15 +35,19 @@ const Dashboard = () => {
 
             if (!user) {
                 setUserData(null);
+                setLoadingProfile(false);
                 return;
             }
 
             try {
+                setLoadingProfile(true);
                 const response = await axios.get(`http://127.0.0.1:5000/users/${user.uid}`);
                 setUserData(response.data || null);
             } catch (error) {
                 console.error("Error loading user profile:", error);
                 setUserData(null);
+            } finally {
+                setLoadingProfile(false);
             }
         });
 
@@ -225,6 +231,10 @@ const Dashboard = () => {
             : userData?.school === "SF"
                 ? "Santa Fe College"
                 : userData?.school;
+
+    if (loadingProfile || (authUser?.uid && loadingMyPublicTasks)) {
+        return <LoadingPage message="Loading dashboard..." />;
+    }
     
     return (
         <div className="dashboard-page-wrapper">

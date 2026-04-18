@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
 import axios from "axios";
+import LoadingPage from "./LoadingPage";
 
 const ProtectedRoute = ({
   children,
@@ -54,7 +55,7 @@ const ProtectedRoute = ({
   }, [adminOnly, user?.uid]);
 
   if (authLoading) {
-    return null;
+    return <LoadingPage message="Loading page..." />;
   }
 
   if (!user) {
@@ -62,7 +63,7 @@ const ProtectedRoute = ({
   }
 
   if (adminOnly && isAdmin === null) {
-    return null;
+    return <LoadingPage message="Checking access..." />;
   }
 
   if (adminOnly && !isAdmin) {

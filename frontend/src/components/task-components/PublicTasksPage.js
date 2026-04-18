@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import axios from "axios";
 import { auth } from "../../firebase";
 import { onAuthStateChanged } from "firebase/auth";
+import LoadingPage from "../LoadingPage";
 import "../../styles/TaskRelatedStyles.css";
 
 const PublicTasksPage = () => {
@@ -273,6 +274,10 @@ const PublicTasksPage = () => {
     }
   };
 
+  if (loading) {
+    return <LoadingPage message="Loading public tasks..." />;
+  }
+
   return (
     <div className="tasks-page">
       <div className="tasks-page-header">
@@ -301,9 +306,7 @@ const PublicTasksPage = () => {
           )}
         </div>
 
-        {loading ? (
-          <p>Loading public tasks...</p>
-        ) : tasks.length === 0 ? (
+        {tasks.length === 0 ? (
           <p>No public tasks available right now.</p>
         ) : filteredTasks.length === 0 ? (
           <p>No public tasks matched your search.</p>
