@@ -16,6 +16,16 @@ const Dashboard = () => {
     const [showCreateTaskPopup, setShowCreateTaskPopup] = useState(false);
     const [myPublicTasks, setMyPublicTasks] = useState([]);
     const [loadingMyPublicTasks, setLoadingMyPublicTasks] = useState(false);
+    const [editingPublicTask, setEditingPublicTask] = useState(null);
+    const [savingPublicTask, setSavingPublicTask] = useState(false);
+    const [editPublicForm, setEditPublicForm] = useState({
+        title: "",
+        dueDate: "",
+        priority: "medium",
+        description: "",
+        visibility: "public",
+        peopleNeeded: "",
+    });
 
     useEffect(()=> {
         const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -73,6 +83,122 @@ const Dashboard = () => {
     const handleTaskAdded = () => {
         setRefresh(prev => prev + 1); // Increment to trigger useEffect in TaskList
         setShowCreateTaskPopup(false);
+    };
+
+    const openPublicTaskEditModal = (task) => {
+        if (!task?.id) return;
+
+        setEditingPublicTask(task);
+        setEditPublicForm({
+            title: task.title || "",
+            dueDate: task.dueDate || "",
+            priority: task.priority || "medium",
+            description: task.description || "",
+            visibility: task.visibility || (task.isPublic ? "public" : "private"),
+            peopleNeeded: Number.isInteger(task.peopleNeeded) ? String(task.peopleNeeded) : "",
+        });
+    };
+
+    const closePublicTaskEditModal = () => {
+        if (savingPublicTask) return;
+        setEditingPublicTask(null);
+        setEditPublicForm({
+            title: "",
+            dueDate: "",
+            priority: "medium",
+            description: "",
+            visibility: "public",
+            peopleNeeded: "",
+        });
+    };
+
+    const handlePublicTaskEditSubmit = async (event) => {
+        event.preventDefault();
+        if (!authUser?.uid || !editingPublicTask?.id || savingPublicTask) return;
+
+        const nextTitle = String(editPublicForm.title || "").trim();
+        if (!nextTitle) {
+            alert("Task title cannot be empty.");
+            return;
+        }
+
+        const normalizedPriority = String(editPublicForm.priority || "medium").trim().toLowerCase();
+        if (!["low", "medium", "high"].includes(normalizedPriority)) {
+            alert("Priority must be low, medium, or high.");
+            return;
+        }
+
+        const normalizedDueDate = String(editPublicForm.dueDate || "").trim() || null;
+        const normalizedDescription = String(editPublicForm.description || "");
+        const titleChanged = nextTitle !== String(editingPublicTask.title || "").trim();
+        const nextVisibility = editPublicForm.visibility === "public" ? "public" : "private";
+        const renameForcesPrivate = Boolean(editingPublicTask.isPublic && titleChanged);
+        const switchedPublicToPrivate = Boolean(editingPublicTask.isPublic && nextVisibility === "private");
+        const willDisbandPublicPost = renameForcesPrivate || switchedPublicToPrivate;
+        const finalVisibility = renameForcesPrivate ? "private" : nextVisibility;
+
+        let nextPeopleNeeded = null;
+        if (finalVisibility === "public") {
+            const parsedPeopleNeeded = Number(String(editPublicForm.peopleNeeded || "").trim());
+            if (!Number.isInteger(parsedPeopleNeeded) || parsedPeopleNeeded < 1 || parsedPeopleNeeded > 10) {
+                alert("People needed must be a whole number between 1 and 10.");
+                return;
+            }
+            nextPeopleNeeded = parsedPeopleNeeded;
+        }
+
+        if (willDisbandPublicPost) {
+            const confirmed = window.confirm(
+                "Warning: This change will make the post private and disband the current group (remove joined users). Continue?"
+            );
+            if (!confirmed) return;
+        }
+
+        const payload = {
+            userId: authUser.uid,
+            title: nextTitle,
+            description: normalizedDescription,
+            dueDate: normalizedDueDate,
+            priority: normalizedPriority,
+            visibility: finalVisibility,
+            isPublic: finalVisibility === "public",
+            peopleNeeded: finalVisibility === "public" ? nextPeopleNeeded : null,
+        };
+
+        try {
+            setSavingPublicTask(true);
+            await axios.patch(`http://127.0.0.1:5000/users/${authUser.uid}/tasks/${editingPublicTask.id}`, payload);
+
+            setMyPublicTasks((prev) => {
+                if (finalVisibility !== "public") {
+                    return prev.filter((task) => task.id !== editingPublicTask.id);
+                }
+
+                return prev.map((task) =>
+                    task.id === editingPublicTask.id
+                        ? {
+                            ...task,
+                            title: nextTitle,
+                            description: normalizedDescription,
+                            dueDate: normalizedDueDate,
+                            priority: normalizedPriority,
+                            visibility: finalVisibility,
+                            isPublic: true,
+                            peopleNeeded: nextPeopleNeeded,
+                            ...(willDisbandPublicPost ? { joinedUsers: [] } : {}),
+                        }
+                        : task
+                );
+            });
+
+            setRefresh((prev) => prev + 1);
+            closePublicTaskEditModal();
+        } catch (error) {
+            console.error("Error editing public post:", error);
+            alert("Could not edit this public post. Please try again.");
+        } finally {
+            setSavingPublicTask(false);
+        }
     };
 
     const welcomeName =
@@ -149,6 +275,16 @@ const Dashboard = () => {
                                                 {task.dueDate ? ` • Due ${task.dueDate}` : ""}
                                             </small>
 
+                                            <div className="my-public-task-actions">
+                                                <button
+                                                    type="button"
+                                                    className="task-edit-save"
+                                                    onClick={() => openPublicTaskEditModal(task)}
+                                                >
+                                                    Edit Post
+                                                </button>
+                                            </div>
+
                                             <div className="joined-users-block">
                                                 <strong>Joined users:</strong>
                                                 {joinedUsers.length === 0 ? (
@@ -195,6 +331,126 @@ const Dashboard = () => {
                 <button className="logout-button" onClick={handleLogout}>
                     Logout
                 </button>
+
+                {editingPublicTask && (
+                    <div className="tasks-modal-overlay" onClick={closePublicTaskEditModal}>
+                        <div className="tasks-modal-content task-edit-modal" onClick={(event) => event.stopPropagation()}>
+                            <button
+                                type="button"
+                                className="tasks-modal-close"
+                                onClick={closePublicTaskEditModal}
+                                aria-label="Close edit public post modal"
+                            >
+                                ✕
+                            </button>
+
+                            <h3>Edit Public Post</h3>
+                            <form className="task-edit-form" onSubmit={handlePublicTaskEditSubmit}>
+                                <label>
+                                    Task Name
+                                    <input
+                                        type="text"
+                                        value={editPublicForm.title}
+                                        onChange={(event) =>
+                                            setEditPublicForm((prev) => ({ ...prev, title: event.target.value }))
+                                        }
+                                        required
+                                    />
+                                </label>
+
+                                <label>
+                                    Due Date
+                                    <input
+                                        type="date"
+                                        value={editPublicForm.dueDate || ""}
+                                        onChange={(event) =>
+                                            setEditPublicForm((prev) => ({ ...prev, dueDate: event.target.value }))
+                                        }
+                                    />
+                                </label>
+
+                                <label>
+                                    Priority
+                                    <select
+                                        className={`priority-select priority-underlined priority-${editPublicForm.priority || "medium"}`}
+                                        value={editPublicForm.priority}
+                                        onChange={(event) =>
+                                            setEditPublicForm((prev) => ({ ...prev, priority: event.target.value }))
+                                        }
+                                    >
+                                        <option value="low" className="priority-option">Low</option>
+                                        <option value="medium" className="priority-option">Medium</option>
+                                        <option value="high" className="priority-option">High</option>
+                                    </select>
+                                </label>
+
+                                <label>
+                                    Description
+                                    <textarea
+                                        rows={4}
+                                        value={editPublicForm.description}
+                                        onChange={(event) =>
+                                            setEditPublicForm((prev) => ({ ...prev, description: event.target.value }))
+                                        }
+                                    />
+                                </label>
+
+                                <label>
+                                    Visibility
+                                    <select
+                                        value={editPublicForm.visibility}
+                                        onChange={(event) =>
+                                            setEditPublicForm((prev) => ({
+                                                ...prev,
+                                                visibility: event.target.value,
+                                                peopleNeeded:
+                                                    event.target.value === "public"
+                                                        ? (prev.peopleNeeded || "1")
+                                                        : "",
+                                            }))
+                                        }
+                                    >
+                                        <option value="private">Private</option>
+                                        <option value="public">Public (Make it a Post!)</option>
+                                    </select>
+                                </label>
+
+                                {editPublicForm.visibility === "public" && (
+                                    <label>
+                                        People Needed
+                                        <input
+                                            type="number"
+                                            min="1"
+                                            max="10"
+                                            step="1"
+                                            value={editPublicForm.peopleNeeded}
+                                            onChange={(event) =>
+                                                setEditPublicForm((prev) => ({ ...prev, peopleNeeded: event.target.value }))
+                                            }
+                                            placeholder="How many people are needed? (1-10)"
+                                            required
+                                        />
+                                    </label>
+                                )}
+
+                                {editingPublicTask.isPublic && (String(editPublicForm.title || "").trim() !== String(editingPublicTask.title || "").trim() || editPublicForm.visibility === "private") && (
+                                    <p className="task-edit-warning">
+                                        Warning: This change will make the post private and disband the current group.
+                                    </p>
+                                )}
+
+                                <div className="task-edit-actions">
+                                    <button type="button" className="task-edit-cancel" onClick={closePublicTaskEditModal} disabled={savingPublicTask}>
+                                        Cancel
+                                    </button>
+                                    <button type="submit" className="task-edit-save" disabled={savingPublicTask}>
+                                        {savingPublicTask ? "Saving..." : "Save Changes"}
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                )}
             </div> 
         </div>
     );

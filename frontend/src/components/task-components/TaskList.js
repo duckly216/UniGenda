@@ -13,6 +13,15 @@ const TaskList = ({ refreshTrigger, limit = 10, showAllStatuses = false }) => {
   const [openMenuTaskId, setOpenMenuTaskId] = useState(null);
   const [expandedTaskIds, setExpandedTaskIds] = useState({});
   const [activeTab, setActiveTab] = useState('uncompleted'); // 'uncompleted' or 'completed'
+  const [editingTask, setEditingTask] = useState(null);
+  const [editForm, setEditForm] = useState({
+    title: '',
+    dueDate: '',
+    priority: 'medium',
+    description: '',
+    visibility: 'private',
+    peopleNeeded: ''
+  });
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -80,65 +89,134 @@ const TaskList = ({ refreshTrigger, limit = 10, showAllStatuses = false }) => {
     }));
   };
 
-  const editTask = async (task) => {
-    if (!uid || !task?.id) return;
+  const openEditModal = (task) => {
+    if (!task?.id) return;
 
     setOpenMenuTaskId(null);
+    setEditingTask(task);
+    setEditForm({
+      title: task.title || '',
+      dueDate: task.dueDate || '',
+      priority: task.priority || 'medium',
+      description: task.description || '',
+      visibility: task.visibility || (task.isPublic ? 'public' : 'private'),
+      peopleNeeded: Number.isInteger(task.peopleNeeded) ? String(task.peopleNeeded) : ''
+    });
+  };
 
-    const nextTitleInput = window.prompt('Edit task title:', task.title || '');
-    if (nextTitleInput === null) return;
+  const closeEditModal = () => {
+    if (deletingTaskId) return;
+    setEditingTask(null);
+    setEditForm({
+      title: '',
+      dueDate: '',
+      priority: 'medium',
+      description: '',
+      visibility: 'private',
+      peopleNeeded: ''
+    });
+  };
 
-    const nextTitle = nextTitleInput.trim();
+  const handleDeleteFromEditModal = async () => {
+    if (!uid || !editingTask?.id || deletingTaskId) return;
+
+    const confirmed = window.confirm('Are you sure you want to delete this task?');
+    if (!confirmed) return;
+
+    try {
+      setDeletingTaskId(editingTask.id);
+      await axios.delete(`http://127.0.0.1:5000/users/${uid}/tasks/${editingTask.id}`);
+
+      setTasks((prev) => prev.filter((task) => task.id !== editingTask.id));
+      closeEditModal();
+    } catch (err) {
+      console.error('Error deleting task:', err);
+      alert('Could not delete task. Please try again.');
+    } finally {
+      setDeletingTaskId(null);
+    }
+  };
+
+  const handleEditSubmit = async (event) => {
+    event.preventDefault();
+
+    if (!uid || !editingTask?.id) return;
+
+    const nextTitle = String(editForm.title || '').trim();
     if (!nextTitle) {
       alert('Task title cannot be empty.');
       return;
     }
 
-    const nextDescriptionInput = window.prompt('Edit description:', task.description || '');
-    if (nextDescriptionInput === null) return;
-
-    const nextDueDateInput = window.prompt(
-      'Edit due date (YYYY-MM-DD). Leave blank for no due date:',
-      task.dueDate || ''
-    );
-    if (nextDueDateInput === null) return;
-
-    const nextPriorityInput = window.prompt(
-      'Edit priority (low, medium, high):',
-      task.priority || 'medium'
-    );
-    if (nextPriorityInput === null) return;
-
-    const normalizedPriority = String(nextPriorityInput).trim().toLowerCase();
+    const normalizedPriority = String(editForm.priority || 'medium').trim().toLowerCase();
     if (!['low', 'medium', 'high'].includes(normalizedPriority)) {
       alert('Priority must be low, medium, or high.');
       return;
     }
 
-    const normalizedDueDate = nextDueDateInput.trim() ? nextDueDateInput.trim() : null;
+    const normalizedDueDate = String(editForm.dueDate || '').trim() || null;
+    const normalizedDescription = String(editForm.description || '');
+    const titleChanged = nextTitle !== String(editingTask.title || '').trim();
+    const nextVisibility = editForm.visibility === 'public' ? 'public' : 'private';
+    const renameForcesPrivate = Boolean(editingTask.isPublic && titleChanged);
+    const switchedPublicToPrivate = Boolean(editingTask.isPublic && nextVisibility === 'private');
+    const willDisbandPublicPost = renameForcesPrivate || switchedPublicToPrivate;
+    const finalVisibility = renameForcesPrivate ? 'private' : nextVisibility;
+
+    let nextPeopleNeeded = null;
+    if (finalVisibility === 'public') {
+      const parsedPeopleNeeded = Number(String(editForm.peopleNeeded || '').trim());
+      if (!Number.isInteger(parsedPeopleNeeded) || parsedPeopleNeeded < 1 || parsedPeopleNeeded > 10) {
+        alert('People needed must be a whole number between 1 and 10.');
+        return;
+      }
+      nextPeopleNeeded = parsedPeopleNeeded;
+    }
+
+    if (willDisbandPublicPost) {
+      const confirmed = window.confirm(
+        'Warning: This change will make the post private and disband the current group (remove joined users). Continue?'
+      );
+      if (!confirmed) return;
+    }
+
+    const payload = {
+      userId: uid,
+      title: nextTitle,
+      description: normalizedDescription,
+      dueDate: normalizedDueDate,
+      priority: normalizedPriority,
+      visibility: finalVisibility,
+      isPublic: finalVisibility === 'public',
+      peopleNeeded: finalVisibility === 'public' ? nextPeopleNeeded : null
+    };
 
     try {
-      await axios.patch(`http://127.0.0.1:5000/users/${uid}/tasks/${task.id}`, {
-        userId: uid,
-        title: nextTitle,
-        description: nextDescriptionInput,
-        dueDate: normalizedDueDate,
-        priority: normalizedPriority
-      });
+      await axios.patch(`http://127.0.0.1:5000/users/${uid}/tasks/${editingTask.id}`, payload);
 
       setTasks((prev) =>
-        prev.map((t) =>
-          t.id === task.id
+        prev.map((task) =>
+          task.id === editingTask.id
             ? {
-                ...t,
+                ...task,
                 title: nextTitle,
-                description: nextDescriptionInput,
+                description: normalizedDescription,
                 dueDate: normalizedDueDate,
-                priority: normalizedPriority
+                priority: normalizedPriority,
+                visibility: finalVisibility,
+                isPublic: finalVisibility === 'public',
+                peopleNeeded: finalVisibility === 'public' ? nextPeopleNeeded : null,
+                ...(willDisbandPublicPost
+                  ? {
+                      joinedUsers: []
+                    }
+                  : {})
               }
-            : t
+            : task
         )
       );
+
+      closeEditModal();
     } catch (err) {
       console.error('Error editing task:', err);
       alert('Could not edit task. Please try again.');
@@ -228,7 +306,7 @@ const TaskList = ({ refreshTrigger, limit = 10, showAllStatuses = false }) => {
                   <button
                     type="button"
                     className="task-item-menu-option"
-                    onClick={() => editTask(task)}
+                    onClick={() => openEditModal(task)}
                   >
                     Edit Task
                   </button>
@@ -345,6 +423,139 @@ const TaskList = ({ refreshTrigger, limit = 10, showAllStatuses = false }) => {
               </div>
             )}
           </section>
+        </div>
+      )}
+
+      {editingTask && (
+        <div className="tasks-modal-overlay" onClick={closeEditModal}>
+          <div className="tasks-modal-content task-edit-modal" onClick={(event) => event.stopPropagation()}>
+            <button
+              type="button"
+              className="tasks-modal-close"
+              onClick={closeEditModal}
+              aria-label="Close edit task modal"
+            >
+              ✕
+            </button>
+
+            <h3>Edit Task</h3>
+            <form className="task-edit-form" onSubmit={handleEditSubmit}>
+              <label>
+                Task Name
+                <input
+                  type="text"
+                  value={editForm.title}
+                  onChange={(event) =>
+                    setEditForm((prev) => ({ ...prev, title: event.target.value }))
+                  }
+                  required
+                />
+              </label>
+
+              <label>
+                Due Date
+                <input
+                  type="date"
+                  value={editForm.dueDate || ''}
+                  onChange={(event) =>
+                    setEditForm((prev) => ({ ...prev, dueDate: event.target.value }))
+                  }
+                />
+              </label>
+
+              <label>
+                Priority
+                <select
+                  className={`priority-select priority-underlined priority-${editForm.priority || 'medium'}`}
+                  value={editForm.priority}
+                  onChange={(event) =>
+                    setEditForm((prev) => ({ ...prev, priority: event.target.value }))
+                  }
+                >
+                  <option value="low" className="priority-option">Low</option>
+                  <option value="medium" className="priority-option">Medium</option>
+                  <option value="high" className="priority-option">High</option>
+                </select>
+              </label>
+
+              <label>
+                Description
+                <textarea
+                  rows={4}
+                  value={editForm.description}
+                  onChange={(event) =>
+                    setEditForm((prev) => ({ ...prev, description: event.target.value }))
+                  }
+                />
+              </label>
+
+              <label>
+                Visibility
+                <select
+                  value={editForm.visibility}
+                  onChange={(event) =>
+                    setEditForm((prev) => ({
+                      ...prev,
+                      visibility: event.target.value,
+                      peopleNeeded:
+                        event.target.value === 'public'
+                          ? (prev.peopleNeeded || '1')
+                          : ''
+                    }))
+                  }
+                >
+                  <option value="private">Private</option>
+                  <option value="public">Public (Make it a Post!)</option>
+                </select>
+              </label>
+
+              {editForm.visibility === 'public' && (
+                <label>
+                  People Needed
+                  <input
+                    type="number"
+                    min="1"
+                    max="10"
+                    step="1"
+                    value={editForm.peopleNeeded}
+                    onChange={(event) =>
+                      setEditForm((prev) => ({ ...prev, peopleNeeded: event.target.value }))
+                    }
+                    placeholder="How many people are needed? (1-10)"
+                    required
+                  />
+                </label>
+              )}
+
+              {editingTask.isPublic && (String(editForm.title || '').trim() !== String(editingTask.title || '').trim() || editForm.visibility === 'private') && (
+                <p className="task-edit-warning">
+                  Warning: This change will make the post private and disband the current group.
+                </p>
+              )}
+
+              <div className="task-edit-actions">
+                <button
+                  type="button"
+                  className="task-edit-delete"
+                  onClick={handleDeleteFromEditModal}
+                  disabled={deletingTaskId === editingTask.id}
+                >
+                  {deletingTaskId === editingTask.id ? 'Deleting...' : 'Delete Task'}
+                </button>
+                <button
+                  type="button"
+                  className="task-edit-cancel"
+                  onClick={closeEditModal}
+                  disabled={deletingTaskId === editingTask.id}
+                >
+                  Cancel
+                </button>
+                <button type="submit" className="task-edit-save" disabled={deletingTaskId === editingTask.id}>
+                  Save Changes
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
     </div>

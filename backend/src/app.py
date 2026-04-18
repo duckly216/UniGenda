@@ -447,6 +447,7 @@ def update_task(uid, task_id):
         updates["visibility"] = "public" if next_public else "private"
         if not next_public:
             updates["peopleNeeded"] = None
+            updates["joinedUsers"] = []
 
     if not updates:
         return jsonify({"error": "No valid fields to update"}), 400

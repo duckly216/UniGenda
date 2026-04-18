@@ -112,6 +112,10 @@
   margin: 0 0 8px 0;
 }
 
+.my-public-task-actions {
+  margin: 10px 0 4px 0;
+}
+
 @media (max-width: 980px) {
   .dashboard-bubble-grid {
     grid-template-columns: 1fr;

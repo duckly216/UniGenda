@@ -482,6 +482,10 @@
 	color: #6b7280;
 }
 
+.public-task-owner-actions {
+	margin-bottom: 8px;
+}
+
 .public-task-join-button {
 	border: none;
 	border-radius: 8px;
@@ -515,4 +519,114 @@
 .joined-users-block ul {
 	margin: 6px 0 0 18px;
 	padding: 0;
+}
+
+.task-edit-modal {
+	width: min(560px, 100%);
+	padding: 20px;
+}
+
+.task-edit-modal h3 {
+	margin: 0 0 14px 0;
+}
+
+.task-edit-form {
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+}
+
+.task-edit-form label {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	font-size: 0.95rem;
+	color: #374151;
+}
+
+.task-edit-form input,
+.task-edit-form select,
+.task-edit-form textarea {
+	border: 1px solid #d1d5db;
+	border-radius: 10px;
+	padding: 10px 12px;
+	font-family: "Oswald", sans-serif;
+	font-size: 0.95rem;
+	box-sizing: border-box;
+}
+
+.task-edit-form input:focus,
+.task-edit-form select:focus,
+.task-edit-form textarea:focus {
+	outline: none;
+	border-color: #7c5cfc;
+	box-shadow: 0 0 0 2px rgba(124, 92, 252, 0.15);
+}
+
+.task-edit-warning {
+	margin: 0;
+	padding: 10px 12px;
+	border-radius: 10px;
+	border: 1px solid #fca5a5;
+	background: #fef2f2;
+	color: #991b1b;
+	font-size: 0.9rem;
+}
+
+.task-edit-actions {
+	display: flex;
+	justify-content: flex-end;
+	gap: 10px;
+	margin-top: 6px;
+}
+
+.task-edit-cancel,
+.task-edit-save {
+	border: none;
+	border-radius: 8px;
+	padding: 8px 12px;
+	font-family: "Oswald", sans-serif;
+	font-size: 0.9rem;
+	cursor: pointer;
+}
+
+.task-edit-delete {
+	border: none;
+	border-radius: 8px;
+	padding: 8px 12px;
+	font-family: "Oswald", sans-serif;
+	font-size: 0.9rem;
+	cursor: pointer;
+	margin-right: auto;
+	background: #ef4444;
+	color: #fff;
+}
+
+.task-edit-delete:hover {
+	background: #dc2626;
+}
+
+.task-edit-cancel {
+	background: #e5e7eb;
+	color: #111827;
+}
+
+.task-edit-cancel:hover {
+	background: #d1d5db;
+}
+
+.task-edit-save {
+	background: #7c5cfc;
+	color: #fff;
+}
+
+.task-edit-save:hover {
+	background: #6a4ae8;
+}
+
+.task-edit-delete:disabled,
+.task-edit-cancel:disabled,
+.task-edit-save:disabled {
+	opacity: 0.65;
+	cursor: not-allowed;
 }
