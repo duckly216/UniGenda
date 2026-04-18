@@ -94,6 +94,9 @@ const PublicTasksPage = () => {
     return joinedUsers.length >= task.peopleNeeded;
   };
 
+  const isTaskCompleted = (task) =>
+    String(task?.status || "").trim().toLowerCase() === "completed";
+
   const handleJoinTask = async (task) => {
     if (!uid || !task?.id || processingTaskId) return;
 
@@ -311,7 +314,8 @@ const PublicTasksPage = () => {
               const ownedByCurrentUser = uid && task.userId === uid;
               const alreadyJoined = hasUserJoinedTask(task);
               const full = isTaskFull(task);
-              const joinDisabled = ownedByCurrentUser || alreadyJoined || full || processingTaskId === task.id;
+              const completed = isTaskCompleted(task);
+              const joinDisabled = ownedByCurrentUser || alreadyJoined || full || completed || processingTaskId === task.id;
               const leaveDisabled = !alreadyJoined || processingTaskId === task.id;
 
               return (
@@ -364,7 +368,9 @@ const PublicTasksPage = () => {
                       >
                         {processingTaskId === task.id
                           ? "Joining..."
-                          : full
+                          : completed
+                            ? "Closed"
+                            : full
                             ? "Task Full"
                             : "Join"}
                       </button>

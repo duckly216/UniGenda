@@ -1,5 +1,5 @@
 import json
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from functools import wraps
 
 from flask import Flask, g, jsonify, request
@@ -72,6 +72,55 @@ def build_joined_user(uid):
         "school": profile.get("school"),
         "joinedAt": datetime.now(timezone.utc).isoformat(),
     }
+
+
+def build_public_expiration(status, existing_expires_at=None):
+    normalized_status = str(status or "").strip().lower()
+
+    if normalized_status == "completed":
+        if existing_expires_at:
+            return existing_expires_at
+        return (datetime.now(timezone.utc) + timedelta(hours=24)).isoformat()
+
+    return None
+
+
+def parse_iso_datetime(value):
+    if not value or not isinstance(value, str):
+        return None
+
+    try:
+        normalized = value.replace("Z", "+00:00")
+        parsed = datetime.fromisoformat(normalized)
+        if parsed.tzinfo is None:
+            parsed = parsed.replace(tzinfo=timezone.utc)
+        return parsed
+    except ValueError:
+        return None
+
+
+def is_public_task_expired(task_data):
+    expires_at = parse_iso_datetime((task_data or {}).get("publicExpiresAt"))
+    if not expires_at:
+        return False
+    return datetime.now(timezone.utc) >= expires_at
+
+
+def delete_expired_public_task(task_id, task_data):
+    owner_id = (task_data or {}).get("userId")
+    public_tasks.document(task_id).delete()
+
+    if owner_id:
+        owner_task_ref = get_user_task_ref(owner_id, task_id)
+        owner_task_snapshot = owner_task_ref.get()
+        if getattr(owner_task_snapshot, "exists", False):
+            owner_task_ref.set({
+                "visibility": "private",
+                "isPublic": False,
+                "peopleNeeded": None,
+                "joinedUsers": [],
+                "publicExpiresAt": None,
+            }, merge=True)
 
 
 def sync_public_task(task_id, task_data):
@@ -449,6 +498,15 @@ def update_task(uid, task_id):
             updates["peopleNeeded"] = None
             updates["joinedUsers"] = []
 
+    next_status = updates.get("status", current_task.get("status"))
+    next_public_flag = updates.get("isPublic", current_task.get("isPublic"))
+    current_public_expires_at = current_task.get("publicExpiresAt")
+    next_public_expires_at = build_public_expiration(next_status, current_public_expires_at)
+    if next_public_flag:
+        updates["publicExpiresAt"] = next_public_expires_at
+    else:
+        updates["publicExpiresAt"] = None
+
     if not updates:
         return jsonify({"error": "No valid fields to update"}), 400
 
@@ -562,6 +620,9 @@ def update_public_task(task_id):
             return jsonify({"error": people_needed_error}), 400
         updates["peopleNeeded"] = people_needed
 
+    next_status = updates.get("status", current_task.get("status"))
+    updates["publicExpiresAt"] = build_public_expiration(next_status, current_task.get("publicExpiresAt"))
+
     task_ref.set(updates, merge=True)
 
     updated_task = current_task | updates
@@ -572,7 +633,12 @@ def update_public_task(task_id):
 def get_public_tasks():
     task_list = []
     for task in public_tasks.stream():
-        task_list.append(task.to_dict() | {"id": task.id})
+        task_data = task.to_dict() or {}
+        if is_public_task_expired(task_data):
+            delete_expired_public_task(task.id, task_data)
+            continue
+
+        task_list.append(task_data | {"id": task.id})
     return jsonify(task_list)
 
 
@@ -594,12 +660,18 @@ def join_public_task(task_id):
     public_task = public_snapshot.to_dict() or {}
     owner_id = public_task.get("userId")
 
+    if is_public_task_expired(public_task):
+        delete_expired_public_task(task_id, public_task)
+        return jsonify({"error": "Public task is no longer available"}), 410
+
     if not public_task.get("isPublic", False):
         return jsonify({"error": "Task is not public"}), 400
     if not owner_id:
         return jsonify({"error": "Task owner is missing"}), 400
     if owner_id == user_id:
         return jsonify({"error": "You cannot join your own public task"}), 400
+    if str(public_task.get("status", "")).strip().lower() == "completed":
+        return jsonify({"error": "This task is completed and can no longer be joined"}), 409
 
     joined_users = public_task.get("joinedUsers")
     if not isinstance(joined_users, list):
