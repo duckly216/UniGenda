@@ -8,6 +8,7 @@ from firebase_config import db
 app = Flask(__name__)
 CORS(app)
 <<<<<<< HEAD
+<<<<<<< HEAD
 tasks = db.collection('tasks')
 public_tasks = db.collection('public_tasks')
 
@@ -51,6 +52,8 @@ def normalize_due_date(raw_due_date):
 def get_user_task_ref(user_id, task_id):
     return db.collection('users').document(user_id).collection('tasks').document(task_id)
 =======
+=======
+>>>>>>> 0150c84 (took out git end of conflict markers)
 tasks = db.collection('tasks')
 public_tasks = db.collection('public_tasks')
 
@@ -106,9 +109,12 @@ def normalize_people_needed(raw_people_needed):
     return people_needed, None
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
 >>>>>>> 9e2797a (Made it so adding a due date is not necessary anymore & expanded selection of making post public)
 >>>>>>> 6a5ffc4 (Made it so adding a due date is not necessary anymore & expanded selection of making post public)
+=======
+>>>>>>> 0150c84 (took out git end of conflict markers)
 
 def sync_public_task(task_id, task_data):
     if task_data.get('isPublic'):
@@ -193,8 +199,11 @@ def get_owned_task_ref(task_id):
         return None, (jsonify({"error": "Forbidden"}), 403)
 
     return task_ref, None
+<<<<<<< HEAD
 >>>>>>> dce7abc (Made it so adding a due date is not necessary anymore & expanded selection of making post public)
 >>>>>>> 9e2797a (Made it so adding a due date is not necessary anymore & expanded selection of making post public)
+=======
+>>>>>>> e459ff8 (took out git end of conflict markers)
 
 
 def get_user_task_ref(user_id, task_id):
