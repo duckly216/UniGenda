@@ -393,3 +393,126 @@
 	background-color: #ffffff;
 	color: #111827;
 }
+
+.public-tasks-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+	gap: 14px;
+}
+
+.public-task-search-wrapper {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	margin-bottom: 14px;
+}
+
+.public-task-search-input {
+	width: 100%;
+	padding: 10px 12px;
+	border: 1px solid #d1d5db;
+	border-radius: 10px;
+	font-family: "Oswald", sans-serif;
+	font-size: 0.95rem;
+	box-sizing: border-box;
+}
+
+.public-task-search-input:focus {
+	outline: none;
+	border-color: #7c5cfc;
+	box-shadow: 0 0 0 2px rgba(124, 92, 252, 0.15);
+}
+
+.public-task-search-hint {
+	color: #6b7280;
+}
+
+.public-task-active-tags,
+.public-task-tags {
+	display: flex;
+	gap: 6px;
+	flex-wrap: wrap;
+}
+
+.public-task-tag-pill {
+	display: inline-flex;
+	align-items: center;
+	padding: 4px 8px;
+	border-radius: 999px;
+	background: #ede9fe;
+	color: #5b21b6;
+	font-size: 0.78rem;
+	font-weight: 500;
+}
+
+.public-task-card {
+	border: 1px solid #e5e7eb;
+	border-radius: 12px;
+	padding: 14px;
+	background: #ffffff;
+	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+}
+
+.public-task-card-header {
+	display: flex;
+	justify-content: space-between;
+	align-items: baseline;
+	gap: 8px;
+}
+
+.public-task-card-header h3 {
+	margin: 0;
+}
+
+.public-task-slot-count {
+	font-size: 0.8rem;
+	color: #4b5563;
+}
+
+.public-task-description {
+	margin: 8px 0 10px 0;
+	color: #111827;
+}
+
+.public-task-meta {
+	display: flex;
+	gap: 12px;
+	flex-wrap: wrap;
+	margin-bottom: 10px;
+	color: #6b7280;
+}
+
+.public-task-join-button {
+	border: none;
+	border-radius: 8px;
+	padding: 8px 12px;
+	font-family: "Oswald", sans-serif;
+	font-size: 0.9rem;
+	background: #7c5cfc;
+	color: #fff;
+	cursor: pointer;
+}
+
+.public-task-join-button:hover {
+	background: #6a4ae8;
+}
+
+.public-task-join-button:disabled {
+	opacity: 0.6;
+	cursor: not-allowed;
+}
+
+.joined-users-block {
+	margin-top: 10px;
+	padding-top: 10px;
+	border-top: 1px solid #e5e7eb;
+}
+
+.joined-users-block p {
+	margin: 6px 0 0 0;
+}
+
+.joined-users-block ul {
+	margin: 6px 0 0 18px;
+	padding: 0;
+}

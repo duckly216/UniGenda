@@ -1,4 +1,5 @@
 import json
+from datetime import datetime, timezone
 from functools import wraps
 
 from flask import Flask, g, jsonify, request
@@ -60,6 +61,17 @@ def normalize_people_needed(raw_people_needed):
         return None, "peopleNeeded must be between 1 and 10"
 
     return people_needed, None
+
+
+def build_joined_user(uid):
+    profile = get_user_public_profile(uid) or {}
+    return {
+        "uid": uid,
+        "displayName": profile.get("displayName"),
+        "email": profile.get("email"),
+        "school": profile.get("school"),
+        "joinedAt": datetime.now(timezone.utc).isoformat(),
+    }
 
 
 def sync_public_task(task_id, task_data):
@@ -192,10 +204,14 @@ def update_user_profile(uid):
     if not updates:
         return jsonify({"error": "No valid profile fields to update."}), 400
 
-    updates["updatedAt"] = firestore.SERVER_TIMESTAMP
-
     try:
         user_ref = db.collection('users').document(uid)
+        user_doc = user_ref.get()
+
+        if not getattr(user_doc, "exists", False):
+            updates["createdAt"] = firestore.SERVER_TIMESTAMP
+
+        updates["updatedAt"] = firestore.SERVER_TIMESTAMP
         user_ref.set(updates, merge=True)
         return jsonify({"message": "Profile updated"}), 200
     except Exception as e:
@@ -345,6 +361,7 @@ def add_task(uid):
         "visibility": "public" if is_public else "private",
         "isPublic": is_public,
         "peopleNeeded": people_needed if is_public else None,
+        "joinedUsers": [],
         "tags": tags,
         "status": "pending",
         "createdAt": firestore.SERVER_TIMESTAMP
@@ -485,6 +502,7 @@ def add_public_task():
         "visibility": "public",
         "isPublic": True,
         "peopleNeeded": people_needed,
+        "joinedUsers": [],
         "tags": tags,
         "status": "pending",
         "createdAt": firestore.SERVER_TIMESTAMP
@@ -555,6 +573,102 @@ def get_public_tasks():
     for task in public_tasks.stream():
         task_list.append(task.to_dict() | {"id": task.id})
     return jsonify(task_list)
+
+
+@app.route('/public_tasks/<task_id>/join', methods=['POST'])
+def join_public_task(task_id):
+    data = parse_payload()
+    if not isinstance(data, dict):
+        return jsonify({"error": "Invalid or missing request body."}), 400
+
+    user_id = data.get("userId")
+    if not user_id:
+        return jsonify({"error": "userId is required"}), 400
+
+    public_task_ref = public_tasks.document(task_id)
+    public_snapshot = public_task_ref.get()
+    if not getattr(public_snapshot, "exists", False):
+        return jsonify({"error": "Public task not found"}), 404
+
+    public_task = public_snapshot.to_dict() or {}
+    owner_id = public_task.get("userId")
+
+    if not public_task.get("isPublic", False):
+        return jsonify({"error": "Task is not public"}), 400
+    if not owner_id:
+        return jsonify({"error": "Task owner is missing"}), 400
+    if owner_id == user_id:
+        return jsonify({"error": "You cannot join your own public task"}), 400
+
+    joined_users = public_task.get("joinedUsers")
+    if not isinstance(joined_users, list):
+        joined_users = []
+
+    if any((isinstance(joined, dict) and joined.get("uid") == user_id) for joined in joined_users):
+        return jsonify({"error": "You have already joined this public task"}), 409
+
+    people_needed = public_task.get("peopleNeeded")
+    if isinstance(people_needed, int) and people_needed > 0 and len(joined_users) >= people_needed:
+        return jsonify({"error": "This task is already full"}), 409
+
+    updated_joined_users = [*joined_users, build_joined_user(user_id)]
+    updates = {"joinedUsers": updated_joined_users}
+
+    public_task_ref.set(updates, merge=True)
+
+    owner_task_ref = get_user_task_ref(owner_id, task_id)
+    owner_task_snapshot = owner_task_ref.get()
+    if getattr(owner_task_snapshot, "exists", False):
+        owner_task_ref.set(updates, merge=True)
+
+    updated_task = public_task | updates
+    return jsonify({"message": "Joined task", "task": updated_task}), 200
+
+
+@app.route('/public_tasks/<task_id>/leave', methods=['POST'])
+def leave_public_task(task_id):
+    data = parse_payload()
+    if not isinstance(data, dict):
+        return jsonify({"error": "Invalid or missing request body."}), 400
+
+    user_id = data.get("userId")
+    if not user_id:
+        return jsonify({"error": "userId is required"}), 400
+
+    public_task_ref = public_tasks.document(task_id)
+    public_snapshot = public_task_ref.get()
+    if not getattr(public_snapshot, "exists", False):
+        return jsonify({"error": "Public task not found"}), 404
+
+    public_task = public_snapshot.to_dict() or {}
+    owner_id = public_task.get("userId")
+
+    if owner_id == user_id:
+        return jsonify({"error": "Task owner cannot leave their own public task"}), 400
+
+    joined_users = public_task.get("joinedUsers")
+    if not isinstance(joined_users, list):
+        joined_users = []
+
+    if not any((isinstance(joined, dict) and joined.get("uid") == user_id) for joined in joined_users):
+        return jsonify({"error": "You have not joined this public task"}), 409
+
+    updated_joined_users = [
+        joined
+        for joined in joined_users
+        if not (isinstance(joined, dict) and joined.get("uid") == user_id)
+    ]
+    updates = {"joinedUsers": updated_joined_users}
+
+    public_task_ref.set(updates, merge=True)
+
+    owner_task_ref = get_user_task_ref(owner_id, task_id)
+    owner_task_snapshot = owner_task_ref.get()
+    if getattr(owner_task_snapshot, "exists", False):
+        owner_task_ref.set(updates, merge=True)
+
+    updated_task = public_task | updates
+    return jsonify({"message": "Left task", "task": updated_task}), 200
 
 @app.route('/public_tasks/<task_id>', methods=['DELETE'])
 def delete_public_task(task_id):
