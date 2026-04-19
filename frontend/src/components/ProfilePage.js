@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import axios from "axios";
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { updateEmail, updateProfile } from "firebase/auth";
 import { auth } from "../firebase";
 import "../styles/Profile.css";
@@ -28,8 +28,9 @@ const formatCreatedAt = (value) => {
   return "Unknown";
 };
 
-const ProfilePage = () => {
+const ProfilePage = ({ currentUser }) => {
   const { userId } = useParams();
+  const navigate = useNavigate();
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -51,9 +52,22 @@ const ProfilePage = () => {
     school: "",
   });
 
+  const activeUserId = currentUser?.uid || auth.currentUser?.uid;
+
+  useEffect(() => {
+    if (activeUserId && userId && activeUserId !== userId) {
+      navigate("/profile", { replace: true });
+    }
+  }, [activeUserId, navigate, userId]);
+
   useEffect(() => {
     if (!userId) {
       setError("Missing user id.");
+      setLoading(false);
+      return;
+    }
+
+    if (activeUserId && activeUserId !== userId) {
       setLoading(false);
       return;
     }
@@ -77,7 +91,7 @@ const ProfilePage = () => {
     };
 
     loadProfile();
-  }, [userId]);
+  }, [activeUserId, userId]);
 
   const initials = useMemo(() => {
     const displayName = profile?.displayName || "";

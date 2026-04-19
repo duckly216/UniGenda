@@ -104,7 +104,7 @@ function App() {
               <div style={{ display: "flex" }}>
                 <NavBar user={currentUser} />
                 <div style={{ marginLeft: "60px", flex: 1 }}>
-                  <ProfilePage />
+                  <ProfilePage currentUser={currentUser} />
                 </div>
               </div>
             </ProtectedRoute>
