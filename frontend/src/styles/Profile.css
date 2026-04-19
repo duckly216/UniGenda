@@ -167,6 +167,17 @@
   gap: 0.65rem;
 }
 
+.edit-profile-field {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.edit-profile-label {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #334155;
+}
+
 .edit-profile-input {
   width: 100%;
   border-radius: 10px;
