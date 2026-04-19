@@ -1,11 +1,13 @@
 import React, { useEffect, useMemo, useState } from "react";
 import axios from "axios";
 import { auth } from "../../firebase";
+import { useNavigate } from "react-router-dom";
 import { onAuthStateChanged } from "firebase/auth";
 import LoadingPage from "../LoadingPage";
 import "../../styles/TaskRelatedStyles.css";
 
 const PublicTasksPage = () => {
+  const navigate = useNavigate();
   const [uid, setUid] = useState(null);
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -87,6 +89,16 @@ const PublicTasksPage = () => {
     });
   }, [tasks, parsedSearch]);
 
+  const myPublicTasks = useMemo(
+    () => filteredTasks.filter((task) => uid && task.userId === uid),
+    [filteredTasks, uid],
+  );
+
+  const publicTasksInUniGenda = useMemo(
+    () => filteredTasks.filter((task) => !uid || task.userId !== uid),
+    [filteredTasks, uid],
+  );
+
   const isTaskFull = (task) => {
     const joinedUsers = Array.isArray(task.joinedUsers) ? task.joinedUsers : [];
     if (!Number.isInteger(task.peopleNeeded) || task.peopleNeeded <= 0) {
@@ -155,6 +167,53 @@ const PublicTasksPage = () => {
       alert(message);
     } finally {
       setProcessingTaskId(null);
+    }
+  };
+
+  const handleViewJoinedUserProfile = (joinedUser) => {
+    if (!joinedUser?.uid) {
+      alert("This user does not have a profile id available.");
+      return;
+    }
+
+    navigate(`/profile/${joinedUser.uid}`);
+  };
+
+  const handleMessageJoinedUser = (joinedUser) => {
+    if (!joinedUser?.uid) {
+      alert("This user cannot be messaged right now.");
+      return;
+    }
+
+    alert("Messaging is currently a work in progress.");
+  };
+
+  const handleReportJoinedUser = async (joinedUser) => {
+    if (!uid) {
+      alert("You must be logged in to report a user.");
+      return;
+    }
+
+    if (!joinedUser?.uid) {
+      alert("This user does not have a reportable id.");
+      return;
+    }
+
+    const description = window.prompt("Describe why you are reporting this user:");
+    if (!description || !description.trim()) {
+      return;
+    }
+
+    try {
+      await axios.post("http://127.0.0.1:5000/reports", {
+        userId: uid,
+        accusedId: joinedUser.uid,
+        description: description.trim(),
+      });
+      alert("Report submitted.");
+    } catch (error) {
+      console.error("Error reporting joined user:", error);
+      alert("Could not submit report. Please try again.");
     }
   };
 
@@ -281,8 +340,8 @@ const PublicTasksPage = () => {
   return (
     <div className="tasks-page">
       <div className="tasks-page-header">
-        <h1>Public Tasks</h1>
-        <p>Browse all public posts and join tasks created by other students.</p>
+        <h1>Public Posts</h1>
+        <p>Manage your own public posts and browse public posts created by other students.</p>
       </div>
 
       <section className="tasks-page-section">
@@ -311,106 +370,184 @@ const PublicTasksPage = () => {
         ) : filteredTasks.length === 0 ? (
           <p>No public tasks matched your search.</p>
         ) : (
-          <div className="public-tasks-grid">
-            {filteredTasks.map((task) => {
-              const joinedUsers = Array.isArray(task.joinedUsers) ? task.joinedUsers : [];
-              const ownedByCurrentUser = uid && task.userId === uid;
-              const alreadyJoined = hasUserJoinedTask(task);
-              const full = isTaskFull(task);
-              const completed = isTaskCompleted(task);
-              const joinDisabled = ownedByCurrentUser || alreadyJoined || full || completed || processingTaskId === task.id;
-              const leaveDisabled = !alreadyJoined || processingTaskId === task.id;
+          <div className="public-tasks-section-stack">
+            <section className="public-tasks-subsection">
+              <h2>My Public Posts</h2>
+              {myPublicTasks.length === 0 ? (
+                <p>You haven't created any public posts yet.</p>
+              ) : (
+                <div className="public-tasks-grid">
+                  {myPublicTasks.map((task) => {
+                    const joinedUsers = Array.isArray(task.joinedUsers) ? task.joinedUsers : [];
 
-              return (
-                <article
-                  key={task.id}
-                  className={`public-task-card priority-underlined priority-${task.priority || "medium"}`}
-                >
-                  <div className="public-task-card-header">
-                    <h3>{task.title}</h3>
-                    {Number.isInteger(task.peopleNeeded) && task.peopleNeeded > 0 ? (
-                      <span className="public-task-slot-count">
-                        {joinedUsers.length}/{task.peopleNeeded} joined
-                      </span>
-                    ) : (
-                      <span className="public-task-slot-count">{joinedUsers.length} joined</span>
-                    )}
-                  </div>
-
-                  <p className="public-task-description">{task.description || "No description."}</p>
-
-                  {Array.isArray(task.tags) && task.tags.length > 0 && (
-                    <div className="public-task-tags">
-                      {task.tags.map((tag) => (
-                        <span key={`${task.id}-${tag}`} className="public-task-tag-pill">#{tag}</span>
-                      ))}
-                    </div>
-                  )}
-
-                  <div className="public-task-meta">
-                    <small>Status: {task.status || "pending"}</small>
-                    <small>Due: {task.dueDate || "No due date"}</small>
-                  </div>
-
-                  {!ownedByCurrentUser && (
-                    alreadyJoined ? (
-                      <button
-                        type="button"
-                        className="public-task-join-button"
-                        onClick={() => handleLeaveTask(task)}
-                        disabled={leaveDisabled}
+                    return (
+                      <article
+                        key={task.id}
+                        className={`public-task-card priority-underlined priority-${task.priority || "medium"}`}
                       >
-                        {processingTaskId === task.id ? "Leaving..." : "Leave Group"}
-                      </button>
-                    ) : (
-                      <button
-                        type="button"
-                        className="public-task-join-button"
-                        onClick={() => handleJoinTask(task)}
-                        disabled={joinDisabled}
-                      >
-                        {processingTaskId === task.id
-                          ? "Joining..."
-                          : completed
-                            ? "Closed"
-                            : full
-                            ? "Task Full"
-                            : "Join"}
-                      </button>
-                    )
-                  )}
+                        <div className="public-task-card-header">
+                          <h3>{task.title}</h3>
+                          {Number.isInteger(task.peopleNeeded) && task.peopleNeeded > 0 ? (
+                            <span className="public-task-slot-count">
+                              {joinedUsers.length}/{task.peopleNeeded} joined
+                            </span>
+                          ) : (
+                            <span className="public-task-slot-count">{joinedUsers.length} joined</span>
+                          )}
+                        </div>
 
-                  {ownedByCurrentUser && (
-                    <div className="public-task-owner-actions">
-                      <button
-                        type="button"
-                        className="public-task-join-button"
-                        onClick={() => openOwnedTaskEditModal(task)}
-                      >
-                        Edit Post
-                      </button>
-                    </div>
-                  )}
+                        <p className="public-task-description">{task.description || "No description."}</p>
 
-                  {ownedByCurrentUser && (
-                    <div className="joined-users-block">
-                      <strong>Joined users:</strong>
-                      {joinedUsers.length === 0 ? (
-                        <p>No one has joined yet.</p>
-                      ) : (
-                        <ul>
-                          {joinedUsers.map((joinedUser) => (
-                            <li key={joinedUser.uid || `${task.id}-${joinedUser.email || "unknown"}`}>
-                              {joinedUser.displayName || joinedUser.email || joinedUser.uid}
-                            </li>
-                          ))}
-                        </ul>
-                      )}
-                    </div>
-                  )}
-                </article>
-              );
-            })}
+                        {Array.isArray(task.tags) && task.tags.length > 0 && (
+                          <div className="public-task-tags">
+                            {task.tags.map((tag) => (
+                              <span key={`${task.id}-${tag}`} className="public-task-tag-pill">#{tag}</span>
+                            ))}
+                          </div>
+                        )}
+
+                        <div className="public-task-meta">
+                          <small>Status: {task.status || "pending"}</small>
+                          <small>Due: {task.dueDate || "No due date"}</small>
+                        </div>
+
+                        <div className="public-task-owner-actions">
+                          <button
+                            type="button"
+                            className="public-task-join-button"
+                            onClick={() => openOwnedTaskEditModal(task)}
+                          >
+                            Edit Post
+                          </button>
+                        </div>
+
+                        <div className="joined-users-block">
+                          <strong>Joined users:</strong>
+                          {joinedUsers.length === 0 ? (
+                            <p>No one has joined yet.</p>
+                          ) : (
+                            <ul>
+                              {joinedUsers.map((joinedUser) => (
+                                <li key={joinedUser.uid || `${task.id}-${joinedUser.email || "unknown"}`}>
+                                  <div className="joined-user-entry">
+                                    <span>{joinedUser.displayName || joinedUser.email || joinedUser.uid}</span>
+                                    <details className="joined-user-actions-menu">
+                                      <summary
+                                        className="joined-user-actions-trigger"
+                                        aria-label={`Open actions for ${joinedUser.displayName || joinedUser.email || "this user"}`}
+                                      >
+                                        ⋯
+                                      </summary>
+                                      <div className="joined-user-actions-list">
+                                        <button
+                                          type="button"
+                                          onClick={() => handleViewJoinedUserProfile(joinedUser)}
+                                        >
+                                          View Profile
+                                        </button>
+                                        <button
+                                          type="button"
+                                          onClick={() => handleMessageJoinedUser(joinedUser)}
+                                        >
+                                          Message User
+                                        </button>
+                                        <button
+                                          type="button"
+                                          onClick={() => handleReportJoinedUser(joinedUser)}
+                                        >
+                                          Report User
+                                        </button>
+                                      </div>
+                                    </details>
+                                  </div>
+                                </li>
+                              ))}
+                            </ul>
+                          )}
+                        </div>
+                      </article>
+                    );
+                  })}
+                </div>
+              )}
+            </section>
+
+            <section className="public-tasks-subsection">
+              <h2>Public Posts in UniGenda</h2>
+              {publicTasksInUniGenda.length === 0 ? (
+                <p>No public posts from other students matched your search.</p>
+              ) : (
+                <div className="public-tasks-grid">
+                  {publicTasksInUniGenda.map((task) => {
+                    const joinedUsers = Array.isArray(task.joinedUsers) ? task.joinedUsers : [];
+                    const alreadyJoined = hasUserJoinedTask(task);
+                    const full = isTaskFull(task);
+                    const completed = isTaskCompleted(task);
+                    const joinDisabled = alreadyJoined || full || completed || processingTaskId === task.id;
+                    const leaveDisabled = !alreadyJoined || processingTaskId === task.id;
+
+                    return (
+                      <article
+                        key={task.id}
+                        className={`public-task-card priority-underlined priority-${task.priority || "medium"}`}
+                      >
+                        <div className="public-task-card-header">
+                          <h3>{task.title}</h3>
+                          {Number.isInteger(task.peopleNeeded) && task.peopleNeeded > 0 ? (
+                            <span className="public-task-slot-count">
+                              {joinedUsers.length}/{task.peopleNeeded} joined
+                            </span>
+                          ) : (
+                            <span className="public-task-slot-count">{joinedUsers.length} joined</span>
+                          )}
+                        </div>
+
+                        <p className="public-task-description">{task.description || "No description."}</p>
+
+                        {Array.isArray(task.tags) && task.tags.length > 0 && (
+                          <div className="public-task-tags">
+                            {task.tags.map((tag) => (
+                              <span key={`${task.id}-${tag}`} className="public-task-tag-pill">#{tag}</span>
+                            ))}
+                          </div>
+                        )}
+
+                        <div className="public-task-meta">
+                          <small>Status: {task.status || "pending"}</small>
+                          <small>Due: {task.dueDate || "No due date"}</small>
+                        </div>
+
+                        {alreadyJoined ? (
+                          <button
+                            type="button"
+                            className="public-task-join-button"
+                            onClick={() => handleLeaveTask(task)}
+                            disabled={leaveDisabled}
+                          >
+                            {processingTaskId === task.id ? "Leaving..." : "Leave Group"}
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            className="public-task-join-button"
+                            onClick={() => handleJoinTask(task)}
+                            disabled={joinDisabled}
+                          >
+                            {processingTaskId === task.id
+                              ? "Joining..."
+                              : completed
+                                ? "Closed"
+                                : full
+                                ? "Task Full"
+                                : "Join"}
+                          </button>
+                        )}
+                      </article>
+                    );
+                  })}
+                </div>
+              )}
+            </section>
           </div>
         )}
       </section>

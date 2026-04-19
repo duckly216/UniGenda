@@ -4,6 +4,7 @@ import { auth } from "../firebase";
 import { onAuthStateChanged, signOut } from "firebase/auth"; //
 import { useNavigate } from "react-router-dom";
 import "../styles/Dashboard.css";
+import "../styles/TaskRelatedStyles.css";
 import TaskForm from './task-components/TaskForm';
 import TaskList from './task-components/TaskList';
 import LoadingPage from "./LoadingPage";
@@ -207,6 +208,54 @@ const Dashboard = () => {
         }
     };
 
+    const handleViewJoinedUserProfile = (joinedUser) => {
+        if (!joinedUser?.uid) {
+            alert("This user does not have a profile id available.");
+            return;
+        }
+
+        navigate(`/profile/${joinedUser.uid}`);
+    };
+
+    const handleMessageJoinedUser = (joinedUser) => {
+        if (!joinedUser?.uid) {
+            alert("This user cannot be messaged right now.");
+            return;
+        }
+
+        alert("Messaging is currently a work in progress.");
+    };
+
+    const handleReportJoinedUser = async (joinedUser) => {
+        const reporterId = authUser?.uid || auth.currentUser?.uid;
+        if (!reporterId) {
+            alert("You must be logged in to report a user.");
+            return;
+        }
+
+        if (!joinedUser?.uid) {
+            alert("This user does not have a reportable id.");
+            return;
+        }
+
+        const description = window.prompt("Describe why you are reporting this user:");
+        if (!description || !description.trim()) {
+            return;
+        }
+
+        try {
+            await axios.post("http://127.0.0.1:5000/reports", {
+                userId: reporterId,
+                accusedId: joinedUser.uid,
+                description: description.trim(),
+            });
+            alert("Report submitted.");
+        } catch (error) {
+            console.error("Error reporting joined user:", error);
+            alert("Could not submit report. Please try again.");
+        }
+    };
+
     const welcomeName =
         userData?.displayName ||
         userData?.firstName ||
@@ -303,7 +352,37 @@ const Dashboard = () => {
                                                     <ul>
                                                         {joinedUsers.map((joinedUser) => (
                                                             <li key={joinedUser.uid || `${task.id}-${joinedUser.email || "unknown"}`}>
-                                                                {joinedUser.displayName || joinedUser.email || joinedUser.uid}
+                                                                <div className="joined-user-entry">
+                                                                    <span>{joinedUser.displayName || joinedUser.email || joinedUser.uid}</span>
+                                                                    <details className="joined-user-actions-menu">
+                                                                        <summary
+                                                                            className="joined-user-actions-trigger"
+                                                                            aria-label={`Open actions for ${joinedUser.displayName || joinedUser.email || "this user"}`}
+                                                                        >
+                                                                            ⋯
+                                                                        </summary>
+                                                                        <div className="joined-user-actions-list">
+                                                                            <button
+                                                                                type="button"
+                                                                                onClick={() => handleViewJoinedUserProfile(joinedUser)}
+                                                                            >
+                                                                                View Profile
+                                                                            </button>
+                                                                            <button
+                                                                                type="button"
+                                                                                onClick={() => handleMessageJoinedUser(joinedUser)}
+                                                                            >
+                                                                                Message User
+                                                                            </button>
+                                                                            <button
+                                                                                type="button"
+                                                                                onClick={() => handleReportJoinedUser(joinedUser)}
+                                                                            >
+                                                                                Report User
+                                                                            </button>
+                                                                        </div>
+                                                                    </details>
+                                                                </div>
                                                             </li>
                                                         ))}
                                                     </ul>
