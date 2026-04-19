@@ -1,12 +1,24 @@
 # UniGenda
 
-UniGenda is a task management web app for students. It helps you organize school, work, and daily-life tasks, and aims to support collaboration with people who have similar goals.
+## Overview
+UniGenda is a simple task management app built for students who want to keep school, work, and daily life organized in one place. It makes it easy to track what matters, stay on top of deadlines, and collaborate with others when a task needs teamwork.
+
+## Main Features
+- Organize Everything in One Place: Add assignments, work tasks, and everyday chores to the same list so nothing gets lost. Mark items as complete as you finish them and keep your focus on what’s next.
+- Collaborate with Others: Share a task publicly and bring friends or teammates into the process to get things done faster together.
+
+---
 
 ## Tech Stack
 
 - Backend: Python + Flask + Firebase (Firestore)
 - Frontend: React
 - Architecture: Client/Server
+
+---
+<br/><br/>
+
+# Project Setup
 
 ## Prerequisites
 
