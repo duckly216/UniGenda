@@ -55,19 +55,8 @@ const ProfilePage = ({ currentUser }) => {
   const activeUserId = currentUser?.uid || auth.currentUser?.uid;
 
   useEffect(() => {
-    if (activeUserId && userId && activeUserId !== userId) {
-      navigate("/profile", { replace: true });
-    }
-  }, [activeUserId, navigate, userId]);
-
-  useEffect(() => {
     if (!userId) {
       setError("Missing user id.");
-      setLoading(false);
-      return;
-    }
-
-    if (activeUserId && activeUserId !== userId) {
       setLoading(false);
       return;
     }
@@ -91,7 +80,7 @@ const ProfilePage = ({ currentUser }) => {
     };
 
     loadProfile();
-  }, [activeUserId, userId]);
+  }, [userId]);
 
   const initials = useMemo(() => {
     const displayName = profile?.displayName || "";
@@ -288,10 +277,14 @@ const ProfilePage = ({ currentUser }) => {
                     Edit Profile
                   </button>
                 )}
-                <button type="button">Message User (WIP)</button>
-                <button type="button" onClick={openReportModal}>
-                  Report User
-                </button>
+                {!isOwnProfile && (
+                  <button type="button">Message User (WIP)</button>
+                )}
+                {!isOwnProfile && (
+                  <button type="button" onClick={openReportModal}>
+                    Report User
+                  </button>
+                )}
                 {isOwnProfile && (
                   <button type="button" onClick={handleLogout}>
                     Logout
