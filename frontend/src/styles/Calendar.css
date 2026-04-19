@@ -94,14 +94,32 @@
 }
 
 .calendar-task-pill {
-  background: #7c5cfc;
-  color: #fff;
+  background: #fff;
+  color: #333;
   font-size: 0.7rem;
   padding: 2px 6px;
   border-radius: 4px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  border-bottom: 3px solid #7c5cfc;
+  transition: background-color 0.2s;
+}
+
+.calendar-task-pill:hover {
+  background-color: #f5f5f5;
+}
+
+.calendar-task-pill.priority-low {
+  border-bottom-color: #10b981;
+}
+
+.calendar-task-pill.priority-medium {
+  border-bottom-color: #f59e0b;
+}
+
+.calendar-task-pill.priority-high {
+  border-bottom-color: #ef4444;
 }
 
 .calendar-page {

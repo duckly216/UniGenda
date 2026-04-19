@@ -107,7 +107,10 @@ const Calendar = () => {
                 <span className="calendar-day-number">{day}</span>
                 <div className="calendar-tasks">
                   {dayTasks.map((task, idx) => (
-                    <div key={idx} className="calendar-task-pill">
+                    <div
+                      key={idx}
+                      className={`calendar-task-pill priority-${task.priority || "medium"}`}
+                    >
                       {task.title}
                     </div>
                   ))}
