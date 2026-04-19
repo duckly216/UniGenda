@@ -585,33 +585,8 @@
 	gap: 8px;
 }
 
-.public-task-card-title-block {
-	display: grid;
-	gap: 4px;
-	min-width: 0;
-}
-
 .public-task-card-header h3 {
 	margin: 0;
-}
-
-.public-task-owner-link {
-	align-self: flex-start;
-	border: none;
-	background: transparent;
-	padding: 0;
-	color: #4338ca;
-	font-family: "Oswald", sans-serif;
-	font-size: 0.82rem;
-	font-weight: 500;
-	cursor: pointer;
-	text-align: left;
-	white-space: nowrap;
-}
-
-.public-task-owner-link:hover {
-	text-decoration: underline;
-	text-underline-offset: 2px;
 }
 
 .public-task-slot-count {

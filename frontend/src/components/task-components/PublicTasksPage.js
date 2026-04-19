@@ -2,20 +2,17 @@ import React, { useEffect, useMemo, useState } from "react";
 import axios from "axios";
 import { auth } from "../../firebase";
 import { onAuthStateChanged } from "firebase/auth";
-import { useNavigate } from "react-router-dom";
 import LoadingPage from "../LoadingPage";
 import "../../styles/TaskRelatedStyles.css";
 
 const PublicTasksPage = () => {
   const [uid, setUid] = useState(null);
   const [tasks, setTasks] = useState([]);
-  const [ownerProfiles, setOwnerProfiles] = useState({});
   const [loading, setLoading] = useState(true);
   const [processingTaskId, setProcessingTaskId] = useState(null);
   const [searchInput, setSearchInput] = useState("");
   const [editingOwnedTask, setEditingOwnedTask] = useState(null);
   const [savingOwnedTask, setSavingOwnedTask] = useState(false);
-  const navigate = useNavigate();
   const [editOwnedForm, setEditOwnedForm] = useState({
     title: "",
     dueDate: "",
@@ -55,59 +52,6 @@ const PublicTasksPage = () => {
 
     fetchPublicTasks();
   }, [uid]);
-
-  useEffect(() => {
-    const ownerIds = Array.from(
-      new Set(
-        tasks
-          .map((task) => task?.userId)
-          .filter((ownerId) => typeof ownerId === "string" && ownerId.trim()),
-      ),
-    );
-
-    if (ownerIds.length === 0) {
-      setOwnerProfiles({});
-      return;
-    }
-
-    let cancelled = false;
-
-    const fetchOwnerProfiles = async () => {
-      try {
-        const profileResponses = await Promise.all(
-          ownerIds.map(async (ownerId) => {
-            try {
-              const response = await axios.get(
-                `http://127.0.0.1:5000/users/${encodeURIComponent(ownerId)}`,
-              );
-              return [ownerId, response.data || null];
-            } catch (error) {
-              console.error(
-                `Error loading owner profile for ${ownerId}:`,
-                error,
-              );
-              return [ownerId, null];
-            }
-          }),
-        );
-
-        if (!cancelled) {
-          setOwnerProfiles(Object.fromEntries(profileResponses));
-        }
-      } catch (error) {
-        console.error("Error loading public task owners:", error);
-        if (!cancelled) {
-          setOwnerProfiles({});
-        }
-      }
-    };
-
-    fetchOwnerProfiles();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [tasks]);
 
   const hasUserJoinedTask = (task) => {
     if (!uid) return false;
@@ -158,14 +102,7 @@ const PublicTasksPage = () => {
   };
 
   const isTaskCompleted = (task) =>
-    String(task?.status || "")
-      .trim()
-      .toLowerCase() === "completed";
-
-  const openOwnerProfile = (ownerId) => {
-    if (!ownerId) return;
-    navigate(`/profile/${ownerId}`);
-  };
+    String(task?.status || "").trim().toLowerCase() === "completed";
 
   const handleJoinTask = async (task) => {
     if (!uid || !task?.id || processingTaskId) return;
@@ -190,8 +127,7 @@ const PublicTasksPage = () => {
         );
       }
     } catch (error) {
-      const message =
-        error?.response?.data?.error || "Unable to join this task.";
+      const message = error?.response?.data?.error || "Unable to join this task.";
       alert(message);
     } finally {
       setProcessingTaskId(null);
@@ -221,8 +157,7 @@ const PublicTasksPage = () => {
         );
       }
     } catch (error) {
-      const message =
-        error?.response?.data?.error || "Unable to leave this task.";
+      const message = error?.response?.data?.error || "Unable to leave this task.";
       alert(message);
     } finally {
       setProcessingTaskId(null);
@@ -239,9 +174,7 @@ const PublicTasksPage = () => {
       priority: task.priority || "medium",
       description: task.description || "",
       visibility: task.visibility || (task.isPublic ? "public" : "private"),
-      peopleNeeded: Number.isInteger(task.peopleNeeded)
-        ? String(task.peopleNeeded)
-        : "",
+      peopleNeeded: Number.isInteger(task.peopleNeeded) ? String(task.peopleNeeded) : "",
     });
   };
 
@@ -269,41 +202,25 @@ const PublicTasksPage = () => {
       return;
     }
 
-    const normalizedPriority = String(editOwnedForm.priority || "medium")
-      .trim()
-      .toLowerCase();
+    const normalizedPriority = String(editOwnedForm.priority || "medium").trim().toLowerCase();
     if (!["low", "medium", "high"].includes(normalizedPriority)) {
       alert("Priority must be low, medium, or high.");
       return;
     }
 
-    const normalizedDueDate =
-      String(editOwnedForm.dueDate || "").trim() || null;
+    const normalizedDueDate = String(editOwnedForm.dueDate || "").trim() || null;
     const normalizedDescription = String(editOwnedForm.description || "");
-    const titleChanged =
-      nextTitle !== String(editingOwnedTask.title || "").trim();
-    const nextVisibility =
-      editOwnedForm.visibility === "public" ? "public" : "private";
-    const renameForcesPrivate = Boolean(
-      editingOwnedTask.isPublic && titleChanged,
-    );
-    const switchedPublicToPrivate = Boolean(
-      editingOwnedTask.isPublic && nextVisibility === "private",
-    );
-    const willDisbandPublicPost =
-      renameForcesPrivate || switchedPublicToPrivate;
+    const titleChanged = nextTitle !== String(editingOwnedTask.title || "").trim();
+    const nextVisibility = editOwnedForm.visibility === "public" ? "public" : "private";
+    const renameForcesPrivate = Boolean(editingOwnedTask.isPublic && titleChanged);
+    const switchedPublicToPrivate = Boolean(editingOwnedTask.isPublic && nextVisibility === "private");
+    const willDisbandPublicPost = renameForcesPrivate || switchedPublicToPrivate;
     const finalVisibility = renameForcesPrivate ? "private" : nextVisibility;
 
     let nextPeopleNeeded = null;
     if (finalVisibility === "public") {
-      const parsedPeopleNeeded = Number(
-        String(editOwnedForm.peopleNeeded || "").trim(),
-      );
-      if (
-        !Number.isInteger(parsedPeopleNeeded) ||
-        parsedPeopleNeeded < 1 ||
-        parsedPeopleNeeded > 10
-      ) {
+      const parsedPeopleNeeded = Number(String(editOwnedForm.peopleNeeded || "").trim());
+      if (!Number.isInteger(parsedPeopleNeeded) || parsedPeopleNeeded < 1 || parsedPeopleNeeded > 10) {
         alert("People needed must be a whole number between 1 and 10.");
         return;
       }
@@ -312,7 +229,7 @@ const PublicTasksPage = () => {
 
     if (willDisbandPublicPost) {
       const confirmed = window.confirm(
-        "Warning: This change will make the post private and disband the current group (remove joined users). Continue?",
+        "Warning: This change will make the post private and disband the current group (remove joined users). Continue?"
       );
       if (!confirmed) return;
     }
@@ -330,10 +247,7 @@ const PublicTasksPage = () => {
 
     try {
       setSavingOwnedTask(true);
-      await axios.patch(
-        `http://127.0.0.1:5000/users/${uid}/tasks/${editingOwnedTask.id}`,
-        payload,
-      );
+      await axios.patch(`http://127.0.0.1:5000/users/${uid}/tasks/${editingOwnedTask.id}`, payload);
 
       setTasks((prev) => {
         if (finalVisibility !== "public") {
@@ -353,7 +267,7 @@ const PublicTasksPage = () => {
                 peopleNeeded: nextPeopleNeeded,
                 ...(willDisbandPublicPost ? { joinedUsers: [] } : {}),
               }
-            : task,
+            : task
         );
       });
 
@@ -387,15 +301,12 @@ const PublicTasksPage = () => {
             className="public-task-search-input"
           />
           <small className="public-task-search-hint">
-            Search title text now. Tag search foundation is enabled via hashtags
-            (example: #study #math).
+            Search title text now. Tag search foundation is enabled via hashtags (example: #study #math).
           </small>
           {parsedSearch.tagFilters.length > 0 && (
             <div className="public-task-active-tags">
               {parsedSearch.tagFilters.map((tag) => (
-                <span key={tag} className="public-task-tag-pill">
-                  #{tag}
-                </span>
+                <span key={tag} className="public-task-tag-pill">#{tag}</span>
               ))}
             </div>
           )}
@@ -408,21 +319,13 @@ const PublicTasksPage = () => {
         ) : (
           <div className="public-tasks-grid">
             {filteredTasks.map((task) => {
-              const joinedUsers = Array.isArray(task.joinedUsers)
-                ? task.joinedUsers
-                : [];
+              const joinedUsers = Array.isArray(task.joinedUsers) ? task.joinedUsers : [];
               const ownedByCurrentUser = uid && task.userId === uid;
               const alreadyJoined = hasUserJoinedTask(task);
               const full = isTaskFull(task);
               const completed = isTaskCompleted(task);
-              const joinDisabled =
-                ownedByCurrentUser ||
-                alreadyJoined ||
-                full ||
-                completed ||
-                processingTaskId === task.id;
-              const leaveDisabled =
-                !alreadyJoined || processingTaskId === task.id;
+              const joinDisabled = ownedByCurrentUser || alreadyJoined || full || completed || processingTaskId === task.id;
+              const leaveDisabled = !alreadyJoined || processingTaskId === task.id;
 
               return (
                 <article
@@ -430,44 +333,22 @@ const PublicTasksPage = () => {
                   className={`public-task-card priority-underlined priority-${task.priority || "medium"}`}
                 >
                   <div className="public-task-card-header">
-                    <div className="public-task-card-title-block">
-                      <h3>{task.title}</h3>
-                      {task.userId && (
-                        <button
-                          type="button"
-                          className="public-task-owner-link"
-                          onClick={() => openOwnerProfile(task.userId)}
-                        >
-                          {ownerProfiles[task.userId]?.displayName ||
-                            "View Poster"}
-                        </button>
-                      )}
-                    </div>
-                    {Number.isInteger(task.peopleNeeded) &&
-                    task.peopleNeeded > 0 ? (
+                    <h3>{task.title}</h3>
+                    {Number.isInteger(task.peopleNeeded) && task.peopleNeeded > 0 ? (
                       <span className="public-task-slot-count">
                         {joinedUsers.length}/{task.peopleNeeded} joined
                       </span>
                     ) : (
-                      <span className="public-task-slot-count">
-                        {joinedUsers.length} joined
-                      </span>
+                      <span className="public-task-slot-count">{joinedUsers.length} joined</span>
                     )}
                   </div>
 
-                  <p className="public-task-description">
-                    {task.description || "No description."}
-                  </p>
+                  <p className="public-task-description">{task.description || "No description."}</p>
 
                   {Array.isArray(task.tags) && task.tags.length > 0 && (
                     <div className="public-task-tags">
                       {task.tags.map((tag) => (
-                        <span
-                          key={`${task.id}-${tag}`}
-                          className="public-task-tag-pill"
-                        >
-                          #{tag}
-                        </span>
+                        <span key={`${task.id}-${tag}`} className="public-task-tag-pill">#{tag}</span>
                       ))}
                     </div>
                   )}
@@ -477,17 +358,15 @@ const PublicTasksPage = () => {
                     <small>Due: {task.dueDate || "No due date"}</small>
                   </div>
 
-                  {!ownedByCurrentUser &&
-                    (alreadyJoined ? (
+                  {!ownedByCurrentUser && (
+                    alreadyJoined ? (
                       <button
                         type="button"
                         className="public-task-join-button"
                         onClick={() => handleLeaveTask(task)}
                         disabled={leaveDisabled}
                       >
-                        {processingTaskId === task.id
-                          ? "Leaving..."
-                          : "Leave Group"}
+                        {processingTaskId === task.id ? "Leaving..." : "Leave Group"}
                       </button>
                     ) : (
                       <button
@@ -501,10 +380,11 @@ const PublicTasksPage = () => {
                           : completed
                             ? "Closed"
                             : full
-                              ? "Task Full"
-                              : "Join"}
+                            ? "Task Full"
+                            : "Join"}
                       </button>
-                    ))}
+                    )
+                  )}
 
                   {ownedByCurrentUser && (
                     <div className="public-task-owner-actions">
@@ -526,15 +406,8 @@ const PublicTasksPage = () => {
                       ) : (
                         <ul>
                           {joinedUsers.map((joinedUser) => (
-                            <li
-                              key={
-                                joinedUser.uid ||
-                                `${task.id}-${joinedUser.email || "unknown"}`
-                              }
-                            >
-                              {joinedUser.displayName ||
-                                joinedUser.email ||
-                                joinedUser.uid}
+                            <li key={joinedUser.uid || `${task.id}-${joinedUser.email || "unknown"}`}>
+                              {joinedUser.displayName || joinedUser.email || joinedUser.uid}
                             </li>
                           ))}
                         </ul>
@@ -550,10 +423,7 @@ const PublicTasksPage = () => {
 
       {editingOwnedTask && (
         <div className="tasks-modal-overlay" onClick={closeOwnedTaskEditModal}>
-          <div
-            className="tasks-modal-content task-edit-modal"
-            onClick={(event) => event.stopPropagation()}
-          >
+          <div className="tasks-modal-content task-edit-modal" onClick={(event) => event.stopPropagation()}>
             <button
               type="button"
               className="tasks-modal-close"
@@ -564,20 +434,14 @@ const PublicTasksPage = () => {
             </button>
 
             <h3>Edit Public Post</h3>
-            <form
-              className="task-edit-form"
-              onSubmit={handleOwnedTaskEditSubmit}
-            >
+            <form className="task-edit-form" onSubmit={handleOwnedTaskEditSubmit}>
               <label>
                 Task Name
                 <input
                   type="text"
                   value={editOwnedForm.title}
                   onChange={(event) =>
-                    setEditOwnedForm((prev) => ({
-                      ...prev,
-                      title: event.target.value,
-                    }))
+                    setEditOwnedForm((prev) => ({ ...prev, title: event.target.value }))
                   }
                   required
                 />
@@ -589,10 +453,7 @@ const PublicTasksPage = () => {
                   type="date"
                   value={editOwnedForm.dueDate || ""}
                   onChange={(event) =>
-                    setEditOwnedForm((prev) => ({
-                      ...prev,
-                      dueDate: event.target.value,
-                    }))
+                    setEditOwnedForm((prev) => ({ ...prev, dueDate: event.target.value }))
                   }
                 />
               </label>
@@ -603,21 +464,12 @@ const PublicTasksPage = () => {
                   className={`priority-select priority-underlined priority-${editOwnedForm.priority || "medium"}`}
                   value={editOwnedForm.priority}
                   onChange={(event) =>
-                    setEditOwnedForm((prev) => ({
-                      ...prev,
-                      priority: event.target.value,
-                    }))
+                    setEditOwnedForm((prev) => ({ ...prev, priority: event.target.value }))
                   }
                 >
-                  <option value="low" className="priority-option">
-                    Low
-                  </option>
-                  <option value="medium" className="priority-option">
-                    Medium
-                  </option>
-                  <option value="high" className="priority-option">
-                    High
-                  </option>
+                  <option value="low" className="priority-option">Low</option>
+                  <option value="medium" className="priority-option">Medium</option>
+                  <option value="high" className="priority-option">High</option>
                 </select>
               </label>
 
@@ -627,10 +479,7 @@ const PublicTasksPage = () => {
                   rows={4}
                   value={editOwnedForm.description}
                   onChange={(event) =>
-                    setEditOwnedForm((prev) => ({
-                      ...prev,
-                      description: event.target.value,
-                    }))
+                    setEditOwnedForm((prev) => ({ ...prev, description: event.target.value }))
                   }
                 />
               </label>
@@ -645,7 +494,7 @@ const PublicTasksPage = () => {
                       visibility: event.target.value,
                       peopleNeeded:
                         event.target.value === "public"
-                          ? prev.peopleNeeded || "1"
+                          ? (prev.peopleNeeded || "1")
                           : "",
                     }))
                   }
@@ -665,10 +514,7 @@ const PublicTasksPage = () => {
                     step="1"
                     value={editOwnedForm.peopleNeeded}
                     onChange={(event) =>
-                      setEditOwnedForm((prev) => ({
-                        ...prev,
-                        peopleNeeded: event.target.value,
-                      }))
+                      setEditOwnedForm((prev) => ({ ...prev, peopleNeeded: event.target.value }))
                     }
                     placeholder="How many people are needed? (1-10)"
                     required
@@ -676,30 +522,17 @@ const PublicTasksPage = () => {
                 </label>
               )}
 
-              {editingOwnedTask.isPublic &&
-                (String(editOwnedForm.title || "").trim() !==
-                  String(editingOwnedTask.title || "").trim() ||
-                  editOwnedForm.visibility === "private") && (
-                  <p className="task-edit-warning">
-                    Warning: This change will make the post private and disband
-                    the current group.
-                  </p>
-                )}
+              {editingOwnedTask.isPublic && (String(editOwnedForm.title || "").trim() !== String(editingOwnedTask.title || "").trim() || editOwnedForm.visibility === "private") && (
+                <p className="task-edit-warning">
+                  Warning: This change will make the post private and disband the current group.
+                </p>
+              )}
 
               <div className="task-edit-actions">
-                <button
-                  type="button"
-                  className="task-edit-cancel"
-                  onClick={closeOwnedTaskEditModal}
-                  disabled={savingOwnedTask}
-                >
+                <button type="button" className="task-edit-cancel" onClick={closeOwnedTaskEditModal} disabled={savingOwnedTask}>
                   Cancel
                 </button>
-                <button
-                  type="submit"
-                  className="task-edit-save"
-                  disabled={savingOwnedTask}
-                >
+                <button type="submit" className="task-edit-save" disabled={savingOwnedTask}>
                   {savingOwnedTask ? "Saving..." : "Save Changes"}
                 </button>
               </div>
