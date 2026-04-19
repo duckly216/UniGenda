@@ -72,6 +72,14 @@
   background: #f3f4f6;
 }
 
+.profile-actions-menu button.profile-action-danger {
+  color: #b91c1c;
+}
+
+.profile-actions-menu button.profile-action-danger:hover {
+  background: #fee2e2;
+}
+
 .profile-details {
   display: grid;
   gap: 0.9rem;
@@ -160,6 +168,41 @@
   font-family: "Oswald", sans-serif;
   font-size: 0.95rem;
   box-sizing: border-box;
+}
+
+.blocked-users-list {
+  display: grid;
+  gap: 0.75rem;
+  margin-top: 0.25rem;
+}
+
+.blocked-user-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 0.75rem 0.9rem;
+  background: #f8fafc;
+}
+
+.blocked-user-info {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.blocked-user-info strong {
+  color: #111827;
+}
+
+.blocked-user-info span,
+.profile-empty-state {
+  color: #64748b;
+}
+
+.blocked-user-unblock {
+  white-space: nowrap;
 }
 
 .edit-profile-grid {

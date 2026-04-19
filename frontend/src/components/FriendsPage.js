@@ -55,7 +55,7 @@ const FriendsPage = () => {
         setLoading(true);
         try {
             const res = await axios.get(
-                `${BASE_URL}/users/search?q=${encodeURIComponent(searchQuery.trim())}`
+              `${BASE_URL}/users/search?q=${encodeURIComponent(searchQuery.trim())}&uid=${encodeURIComponent(currentUser?.uid || "")}`,
             );
             setSearchResults(res.data || []);
         } catch (err) {

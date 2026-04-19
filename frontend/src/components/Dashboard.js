@@ -63,7 +63,9 @@ const Dashboard = () => {
         const fetchMyPublicTasks = async () => {
             try {
                 setLoadingMyPublicTasks(true);
-                const response = await axios.get("http://127.0.0.1:5000/public_tasks");
+                const response = await axios.get(
+                  `http://127.0.0.1:5000/public_tasks?uid=${encodeURIComponent(authUser.uid)}`,
+                );
                 const allPublicTasks = Array.isArray(response.data) ? response.data : [];
                 setMyPublicTasks(allPublicTasks.filter((task) => task.userId === authUser.uid));
             } catch (error) {

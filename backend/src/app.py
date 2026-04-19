@@ -167,6 +167,51 @@ def get_user_public_profile(uid):
     }
 
 
+def get_user_block_state(uid):
+    if not uid:
+        return {"blockedUsers": [], "blockedByUsers": []}
+
+    user_doc = db.collection('users').document(uid).get()
+    user_data = user_doc.to_dict() or {}
+
+    blocked_users = user_data.get("blockedUsers") or []
+    blocked_by_users = user_data.get("blockedByUsers") or []
+
+    if not isinstance(blocked_users, list):
+        blocked_users = []
+    if not isinstance(blocked_by_users, list):
+        blocked_by_users = []
+
+    return {
+        "blockedUsers": [str(blocked_uid).strip() for blocked_uid in blocked_users if str(blocked_uid).strip()],
+        "blockedByUsers": [str(blocked_uid).strip() for blocked_uid in blocked_by_users if str(blocked_uid).strip()],
+    }
+
+
+def is_user_blocked_for_user(viewer_uid, other_uid):
+    if not viewer_uid or not other_uid:
+        return False
+
+    block_state = get_user_block_state(viewer_uid)
+    return other_uid in block_state["blockedUsers"] or other_uid in block_state["blockedByUsers"]
+
+
+def remove_friendship_between(uid_a, uid_b):
+    db.collection('users').document(uid_a).collection('friends').document(uid_b).delete()
+    db.collection('users').document(uid_b).collection('friends').document(uid_a).delete()
+
+
+def remove_friend_requests_between(uid_a, uid_b):
+    request_queries = (
+        db.collection('friend_requests').where('fromUid', '==', uid_a).where('toUid', '==', uid_b),
+        db.collection('friend_requests').where('fromUid', '==', uid_b).where('toUid', '==', uid_a),
+    )
+
+    for request_query in request_queries:
+        for request_doc in request_query.stream():
+            request_doc.reference.delete()
+
+
 def delete_user_documents(uid):
     if not uid:
         return
@@ -719,9 +764,20 @@ def update_public_task(task_id):
 
 @app.route('/public_tasks')
 def get_public_tasks():
+    viewer_uid = request.args.get('uid', '').strip()
+    viewer_block_state = get_user_block_state(viewer_uid) if viewer_uid else {"blockedUsers": [], "blockedByUsers": []}
+
     task_list = []
     for task in public_tasks.stream():
         task_data = task.to_dict() or {}
+        owner_id = task_data.get("userId")
+
+        if viewer_uid and owner_id and (
+            owner_id in viewer_block_state["blockedUsers"]
+            or owner_id in viewer_block_state["blockedByUsers"]
+        ):
+            continue
+
         if is_public_task_expired(task_data):
             delete_expired_public_task(task.id, task_data)
             continue
@@ -758,6 +814,8 @@ def join_public_task(task_id):
         return jsonify({"error": "Task owner is missing"}), 400
     if owner_id == user_id:
         return jsonify({"error": "You cannot join your own public task"}), 400
+    if is_user_blocked_for_user(user_id, owner_id):
+        return jsonify({"error": "You cannot join this user's public task"}), 403
     if str(public_task.get("status", "")).strip().lower() == "completed":
         return jsonify({"error": "This task is completed and can no longer be joined"}), 409
 
@@ -854,6 +912,9 @@ def delete_public_task(task_id):
 @app.route('/users/search', methods=['GET'])
 def search_users():
     q = request.args.get('q', '').strip()
+    viewer_uid = request.args.get('uid', '').strip()
+    viewer_block_state = get_user_block_state(viewer_uid) if viewer_uid else {"blockedUsers": [], "blockedByUsers": []}
+
     if not q:
         return jsonify([]), 200
 
@@ -867,6 +928,15 @@ def search_users():
             .stream()
         )
         for doc in query:
+            if viewer_uid and doc.id == viewer_uid:
+                continue
+
+            if viewer_uid and (
+                doc.id in viewer_block_state["blockedUsers"]
+                or doc.id in viewer_block_state["blockedByUsers"]
+            ):
+                continue
+
             data = doc.to_dict() or {}
             results.append({
                 "uid": doc.id,
@@ -892,6 +962,9 @@ def send_friend_request():
         return jsonify({"error": "toUid is required"}), 400
     if to_uid == from_uid:
         return jsonify({"error": "Cannot send a friend request to yourself"}), 400
+
+    if is_user_blocked_for_user(from_uid, to_uid):
+        return jsonify({"error": "You cannot send a friend request to this user"}), 403
 
     existing_friend = db.collection('users').document(from_uid).collection('friends').document(to_uid).get()
     if getattr(existing_friend, "exists", False):
@@ -931,6 +1004,7 @@ def send_friend_request():
 @require_auth
 def get_friend_requests():
     uid = get_authenticated_uid()
+    viewer_block_state = get_user_block_state(uid)
 
     try:
         incoming = []
@@ -941,12 +1015,19 @@ def get_friend_requests():
             .stream()
         ):
             d = doc.to_dict() or {}
+            from_uid = d.get("fromUid")
+            if from_uid and (
+                from_uid in viewer_block_state["blockedUsers"]
+                or from_uid in viewer_block_state["blockedByUsers"]
+            ):
+                continue
+
             incoming.append({
                 "id": doc.id,
-                "fromUid": d.get("fromUid"),
+                "fromUid": from_uid,
                 "toUid": d.get("toUid"),
                 "status": d.get("status"),
-                "fromProfile": get_user_public_profile(d.get("fromUid")),
+                "fromProfile": get_user_public_profile(from_uid),
             })
 
         outgoing = []
@@ -957,12 +1038,19 @@ def get_friend_requests():
             .stream()
         ):
             d = doc.to_dict() or {}
+            to_uid = d.get("toUid")
+            if to_uid and (
+                to_uid in viewer_block_state["blockedUsers"]
+                or to_uid in viewer_block_state["blockedByUsers"]
+            ):
+                continue
+
             outgoing.append({
                 "id": doc.id,
                 "fromUid": d.get("fromUid"),
-                "toUid": d.get("toUid"),
+                "toUid": to_uid,
                 "status": d.get("status"),
-                "toProfile": get_user_public_profile(d.get("toUid")),
+                "toProfile": get_user_public_profile(to_uid),
             })
 
         return jsonify({"incoming": incoming, "outgoing": outgoing}), 200
@@ -996,11 +1084,15 @@ def respond_to_friend_request(request_id):
     if request_data.get("status") != "pending":
         return jsonify({"error": "Request is no longer pending"}), 409
 
+    from_uid = request_data.get("fromUid")
+    if is_user_blocked_for_user(uid, from_uid):
+        request_ref.delete()
+        return jsonify({"error": "This user is blocked"}), 403
+
     if action == "reject":
         request_ref.set({"status": "rejected"}, merge=True)
         return jsonify({"message": "Friend request rejected"}), 200
 
-    from_uid = request_data.get("fromUid")
     from_profile = get_user_public_profile(from_uid) or {}
     to_profile = get_user_public_profile(uid) or {}
 
@@ -1069,6 +1161,82 @@ def remove_friend(uid, friend_uid):
     db.collection('users').document(friend_uid).collection('friends').document(uid).delete()
 
     return jsonify({"message": "Friend removed"}), 200
+
+
+@app.route('/users/<uid>/block', methods=['POST'])
+def block_user(uid):
+    data = parse_payload()
+
+    if not isinstance(data, dict):
+        return jsonify({"error": "Invalid or missing request body."}), 400
+
+    blocked_user_id = (data.get("blockedUserId") or "").strip()
+    if not uid:
+        return jsonify({"error": "userId is required"}), 400
+    if not blocked_user_id:
+        return jsonify({"error": "blockedUserId is required"}), 400
+    if blocked_user_id == uid:
+        return jsonify({"error": "You cannot block yourself"}), 400
+
+    blocker_ref = db.collection('users').document(uid)
+    blocked_ref = db.collection('users').document(blocked_user_id)
+
+    blocker_ref.set({
+        "blockedUsers": firestore.ArrayUnion([blocked_user_id]),
+        "updatedAt": firestore.SERVER_TIMESTAMP,
+    }, merge=True)
+    blocked_ref.set({
+        "blockedByUsers": firestore.ArrayUnion([uid]),
+        "updatedAt": firestore.SERVER_TIMESTAMP,
+    }, merge=True)
+
+    remove_friendship_between(uid, blocked_user_id)
+    remove_friend_requests_between(uid, blocked_user_id)
+
+    return jsonify({"message": "User blocked"}), 200
+
+
+@app.route('/users/<uid>/blocked_users', methods=['GET'])
+def get_blocked_users(uid):
+    try:
+        blocked_state = get_user_block_state(uid)
+        blocked_users = []
+
+        for blocked_uid in blocked_state["blockedUsers"]:
+            profile = get_user_public_profile(blocked_uid)
+            blocked_users.append({
+                "uid": blocked_uid,
+                "displayName": profile.get("displayName") if profile else None,
+                "school": profile.get("school") if profile else None,
+            })
+
+        return jsonify(blocked_users), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 400
+
+
+@app.route('/users/<uid>/block/<blocked_uid>', methods=['DELETE'])
+def unblock_user(uid, blocked_uid):
+    if not uid:
+        return jsonify({"error": "userId is required"}), 400
+
+    blocked_uid = (blocked_uid or "").strip()
+    if not blocked_uid:
+        return jsonify({"error": "blockedUserId is required"}), 400
+
+    blocker_ref = db.collection('users').document(uid)
+    blocked_ref = db.collection('users').document(blocked_uid)
+
+    blocker_ref.set({
+        "blockedUsers": firestore.ArrayRemove([blocked_uid]),
+        "updatedAt": firestore.SERVER_TIMESTAMP,
+    }, merge=True)
+    blocked_ref.set({
+        "blockedByUsers": firestore.ArrayRemove([uid]),
+        "updatedAt": firestore.SERVER_TIMESTAMP,
+    }, merge=True)
+
+    return jsonify({"message": "User unblocked"}), 200
 
 ## -- --------------- -- ##
 

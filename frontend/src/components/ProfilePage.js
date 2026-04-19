@@ -1,9 +1,12 @@
 import React, { useEffect, useMemo, useState } from "react";
 import axios from "axios";
 import { useParams } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { updateEmail, updateProfile } from "firebase/auth";
 import { auth } from "../firebase";
 import "../styles/Profile.css";
+
+const BASE_URL = "http://127.0.0.1:5000";
 
 const formatCreatedAt = (value) => {
   if (!value) {
@@ -30,6 +33,7 @@ const formatCreatedAt = (value) => {
 
 const ProfilePage = () => {
   const { userId } = useParams();
+  const navigate = useNavigate();
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -40,6 +44,9 @@ const ProfilePage = () => {
   const [reportSuccess, setReportSuccess] = useState(false);
   const [reportError, setReportError] = useState("");
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showBlockedUsersModal, setShowBlockedUsersModal] = useState(false);
+  const [blockedUsers, setBlockedUsers] = useState([]);
+  const [loadingBlockedUsers, setLoadingBlockedUsers] = useState(false);
   const [savingEdit, setSavingEdit] = useState(false);
   const [editError, setEditError] = useState("");
   const [editForm, setEditForm] = useState({
@@ -198,6 +205,85 @@ const ProfilePage = () => {
     setShowReportModal(true);
   };
 
+  const openBlockedUsersModal = async () => {
+    if (!isOwnProfile || !userId) {
+      return;
+    }
+
+    setShowActions(false);
+    setShowBlockedUsersModal(true);
+    setLoadingBlockedUsers(true);
+
+    try {
+      const response = await axios.get(
+        `${BASE_URL}/users/${userId}/blocked_users`,
+      );
+      setBlockedUsers(Array.isArray(response.data) ? response.data : []);
+    } catch (err) {
+      console.error("Error loading blocked users:", err);
+      setBlockedUsers([]);
+    } finally {
+      setLoadingBlockedUsers(false);
+    }
+  };
+
+  const closeBlockedUsersModal = () => {
+    if (loadingBlockedUsers) {
+      return;
+    }
+
+    setShowBlockedUsersModal(false);
+  };
+
+  const handleBlockUser = async () => {
+    const blockerId = auth.currentUser?.uid;
+
+    if (!blockerId || !userId || isOwnProfile) {
+      return;
+    }
+
+    const confirmed = window.confirm(
+      "Blocking this user will remove any friendship and prevent them from sending you requests or seeing your public posts. Continue?",
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      await axios.post(`${BASE_URL}/users/${blockerId}/block`, {
+        blockedUserId: userId,
+      });
+      setShowActions(false);
+      navigate("/friends");
+    } catch (err) {
+      console.error("Error blocking user:", err);
+      alert(
+        err.response?.data?.error ||
+          "Could not block this user. Please try again.",
+      );
+    }
+  };
+
+  const handleUnblockUser = async (blockedUserId) => {
+    if (!isOwnProfile || !userId || !blockedUserId) {
+      return;
+    }
+
+    try {
+      await axios.delete(`${BASE_URL}/users/${userId}/block/${blockedUserId}`);
+      setBlockedUsers((prev) =>
+        prev.filter((blockedUser) => blockedUser.uid !== blockedUserId),
+      );
+    } catch (err) {
+      console.error("Error unblocking user:", err);
+      alert(
+        err.response?.data?.error ||
+          "Could not unblock this user. Please try again.",
+      );
+    }
+  };
+
   const closeReportModal = () => {
     if (submittingReport) {
       return;
@@ -265,10 +351,26 @@ const ProfilePage = () => {
                     Edit Profile
                   </button>
                 )}
-                <button type="button">Message User (WIP)</button>
+                {isOwnProfile && (
+                  <button type="button" onClick={openBlockedUsersModal}>
+                    Blocked Users
+                  </button>
+                )}
+                {!isOwnProfile && (
+                  <button type="button">Message User (WIP)</button>
+                )}
                 <button type="button" onClick={openReportModal}>
                   Report User
                 </button>
+                {!isOwnProfile && (
+                  <button
+                    type="button"
+                    className="profile-action-danger"
+                    onClick={handleBlockUser}
+                  >
+                    Block User
+                  </button>
+                )}
               </div>
             )}
           </div>
@@ -442,6 +544,60 @@ const ProfilePage = () => {
                 disabled={savingEdit}
               >
                 {savingEdit ? "Saving..." : "Save Changes"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showBlockedUsersModal && (
+        <div className="report-modal-overlay" onClick={closeBlockedUsersModal}>
+          <div
+            className="report-modal blocked-users-modal"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <h3>Blocked Users</h3>
+            <p className="report-modal-helper">
+              Unblock someone here if you want them to see your posts and send
+              you friend requests again.
+            </p>
+
+            {loadingBlockedUsers ? (
+              <p>Loading blocked users...</p>
+            ) : blockedUsers.length === 0 ? (
+              <p className="profile-empty-state">
+                You haven't blocked anyone yet.
+              </p>
+            ) : (
+              <div className="blocked-users-list">
+                {blockedUsers.map((blockedUser) => (
+                  <div key={blockedUser.uid} className="blocked-user-row">
+                    <div className="blocked-user-info">
+                      <strong>
+                        {blockedUser.displayName || blockedUser.uid}
+                      </strong>
+                      {blockedUser.school && <span>{blockedUser.school}</span>}
+                    </div>
+                    <button
+                      type="button"
+                      className="report-submit-button blocked-user-unblock"
+                      onClick={() => handleUnblockUser(blockedUser.uid)}
+                    >
+                      Unblock
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div className="report-modal-actions">
+              <button
+                type="button"
+                className="report-cancel-button"
+                onClick={closeBlockedUsersModal}
+                disabled={loadingBlockedUsers}
+              >
+                Close
               </button>
             </div>
           </div>

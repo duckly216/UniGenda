@@ -32,9 +32,15 @@ const PublicTasksPage = () => {
 
   useEffect(() => {
     const fetchPublicTasks = async () => {
+      if (!uid) {
+        return;
+      }
+
       try {
         setLoading(true);
-        const response = await axios.get("http://127.0.0.1:5000/public_tasks");
+        const response = await axios.get(
+          `http://127.0.0.1:5000/public_tasks?uid=${encodeURIComponent(uid)}`,
+        );
         setTasks(Array.isArray(response.data) ? response.data : []);
       } catch (error) {
         console.error("Error loading public tasks:", error);
