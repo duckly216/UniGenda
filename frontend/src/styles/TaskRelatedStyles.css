@@ -722,6 +722,14 @@
 	background: #f3f4f6;
 }
 
+.joined-user-actions-list .joined-user-action-danger {
+	color: #b91c1c;
+}
+
+.joined-user-actions-list .joined-user-action-danger:hover {
+	background: #fef2f2;
+}
+
 .task-edit-modal {
 	width: min(560px, 100%);
 	padding: 20px;

@@ -267,6 +267,16 @@ const Dashboard = () => {
         }
     };
 
+    const handleBlockJoinedUser = (joinedUser) => {
+        const targetLabel = joinedUser?.displayName || joinedUser?.email || "this user";
+        const confirmed = window.confirm(`Block ${targetLabel}?`);
+        if (!confirmed) {
+            return;
+        }
+
+        alert("Blocking users is coming soon.");
+    };
+
     const welcomeName =
         userData?.displayName ||
         userData?.firstName ||
@@ -411,6 +421,13 @@ const Dashboard = () => {
                                                                                     onClick={() => handleReportJoinedUser(joinedUser)}
                                                                                 >
                                                                                     Report User
+                                                                                </button>
+                                                                                <button
+                                                                                    type="button"
+                                                                                    className="joined-user-action-danger"
+                                                                                    onClick={() => handleBlockJoinedUser(joinedUser)}
+                                                                                >
+                                                                                    Block User
                                                                                 </button>
                                                                             </div>
                                                                         </details>
