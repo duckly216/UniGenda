@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import axios from "axios";
+import { signOut } from "firebase/auth";
+import { auth } from "../firebase";
 import "../styles/NavBar.css";
 
 const NAV_ITEMS = [
@@ -50,6 +52,15 @@ const NavBar = ({ user }) => {
   const visibleItems = (group) =>
     NAV_ITEMS.filter((i) => i.group === group && (!i.adminOnly || isAdmin));
 
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      navigate("/");
+    } catch (error) {
+      console.error("Error signing out:", error);
+    }
+  };
+
   return (
     <nav className="navbar">
       <div className="navbar-profile" onClick={() => navigate(profilePath)}>
@@ -92,6 +103,14 @@ const NavBar = ({ user }) => {
           <span className="navbar-label">{item.label}</span>
         </button>
       ))}
+      <button
+        type="button"
+        className="navbar-item navbar-item-logout"
+        onClick={handleLogout}
+      >
+        <span className="navbar-icon">↪</span>
+        <span className="navbar-label">Logout</span>
+      </button>
     </nav>
   );
 };

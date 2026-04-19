@@ -117,3 +117,14 @@
 .navbar:hover .navbar-label {
   opacity: 1;
 }
+
+.navbar-item-logout {
+  margin-top: auto;
+  margin-bottom: 50px;
+  color: #b91c1c;
+}
+
+.navbar-item-logout:hover {
+  background: #fee2e2;
+  color: #991b1b;
+}
