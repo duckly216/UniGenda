@@ -17,6 +17,8 @@ const Dashboard = () => {
     const [refresh, setRefresh] = useState(0);
     const [showCreateTaskPopup, setShowCreateTaskPopup] = useState(false);
     const [myPublicTasks, setMyPublicTasks] = useState([]);
+    const [joinedPublicTasks, setJoinedPublicTasks] = useState([]);
+    const [activePublicPostsTab, setActivePublicPostsTab] = useState("my");
     const [loadingMyPublicTasks, setLoadingMyPublicTasks] = useState(false);
     const [loadingProfile, setLoadingProfile] = useState(true);
     const [editingPublicTask, setEditingPublicTask] = useState(null);
@@ -58,6 +60,7 @@ const Dashboard = () => {
     useEffect(() => {
         if (!authUser?.uid) {
             setMyPublicTasks([]);
+            setJoinedPublicTasks([]);
             return;
         }
 
@@ -67,9 +70,17 @@ const Dashboard = () => {
                 const response = await axios.get("http://127.0.0.1:5000/public_tasks");
                 const allPublicTasks = Array.isArray(response.data) ? response.data : [];
                 setMyPublicTasks(allPublicTasks.filter((task) => task.userId === authUser.uid));
+                setJoinedPublicTasks(
+                    allPublicTasks.filter((task) => {
+                        if (task.userId === authUser.uid) return false;
+                        const joinedUsers = Array.isArray(task.joinedUsers) ? task.joinedUsers : [];
+                        return joinedUsers.some((joinedUser) => joinedUser?.uid === authUser.uid);
+                    })
+                );
             } catch (error) {
                 console.error("Error loading my public tasks:", error);
                 setMyPublicTasks([]);
+                setJoinedPublicTasks([]);
             } finally {
                 setLoadingMyPublicTasks(false);
             }
@@ -312,14 +323,114 @@ const Dashboard = () => {
                     </section>
 
                     <section className="dashboard-bubble dashboard-public-tasks-bubble">
-                        <h3>My Public Tasks</h3>
+                        <div className="dashboard-public-posts-tabs" role="tablist" aria-label="Public posts views">
+                            <button
+                                type="button"
+                                className={`dashboard-public-posts-tab ${activePublicPostsTab === "my" ? "active" : ""}`}
+                                onClick={() => setActivePublicPostsTab("my")}
+                                role="tab"
+                                aria-selected={activePublicPostsTab === "my"}
+                            >
+                                My Public Posts
+                            </button>
+                            <span className="dashboard-public-posts-separator" aria-hidden="true">|</span>
+                            <button
+                                type="button"
+                                className={`dashboard-public-posts-tab ${activePublicPostsTab === "joined" ? "active" : ""}`}
+                                onClick={() => setActivePublicPostsTab("joined")}
+                                role="tab"
+                                aria-selected={activePublicPostsTab === "joined"}
+                            >
+                                Joined Posts
+                            </button>
+                        </div>
                         {loadingMyPublicTasks ? (
                             <p>Loading your public tasks...</p>
-                        ) : myPublicTasks.length === 0 ? (
-                            <p>You haven't created any public tasks yet.</p>
+                        ) : activePublicPostsTab === "my" ? (
+                            myPublicTasks.length === 0 ? (
+                                <p>You haven't created any public tasks yet.</p>
+                            ) : (
+                                <div className="my-public-tasks-list">
+                                    {myPublicTasks.map((task) => {
+                                        const joinedUsers = Array.isArray(task.joinedUsers) ? task.joinedUsers : [];
+                                        const peopleNeeded = Number.isInteger(task.peopleNeeded) ? task.peopleNeeded : null;
+
+                                        return (
+                                            <article key={task.id} className="my-public-task-card">
+                                                <h4>{task.title}</h4>
+                                                <p>{task.description || "No description."}</p>
+                                                <small>
+                                                    {peopleNeeded
+                                                        ? `${joinedUsers.length}/${peopleNeeded} joined`
+                                                        : `${joinedUsers.length} joined`}
+                                                    {task.dueDate ? ` • Due ${task.dueDate}` : ""}
+                                                </small>
+
+                                                <div className="my-public-task-actions">
+                                                    <button
+                                                        type="button"
+                                                        className="task-edit-save"
+                                                        onClick={() => openPublicTaskEditModal(task)}
+                                                    >
+                                                        Edit Post
+                                                    </button>
+                                                </div>
+
+                                                <div className="joined-users-block">
+                                                    <strong>Joined users:</strong>
+                                                    {joinedUsers.length === 0 ? (
+                                                        <p>No one has joined yet.</p>
+                                                    ) : (
+                                                        <ul>
+                                                            {joinedUsers.map((joinedUser) => (
+                                                                <li key={joinedUser.uid || `${task.id}-${joinedUser.email || "unknown"}`}>
+                                                                    <div className="joined-user-entry">
+                                                                        <span>{joinedUser.displayName || joinedUser.email || joinedUser.uid}</span>
+                                                                        <details className="joined-user-actions-menu">
+                                                                            <summary
+                                                                                className="joined-user-actions-trigger"
+                                                                                aria-label={`Open actions for ${joinedUser.displayName || joinedUser.email || "this user"}`}
+                                                                            >
+                                                                                ⋯
+                                                                            </summary>
+                                                                            <div className="joined-user-actions-list">
+                                                                                <button
+                                                                                    type="button"
+                                                                                    onClick={() => handleViewJoinedUserProfile(joinedUser)}
+                                                                                >
+                                                                                    View Profile
+                                                                                </button>
+                                                                                <button
+                                                                                    type="button"
+                                                                                    onClick={() => handleMessageJoinedUser(joinedUser)}
+                                                                                >
+                                                                                    Message User
+                                                                                </button>
+                                                                                <button
+                                                                                    type="button"
+                                                                                    onClick={() => handleReportJoinedUser(joinedUser)}
+                                                                                >
+                                                                                    Report User
+                                                                                </button>
+                                                                            </div>
+                                                                        </details>
+                                                                    </div>
+                                                                </li>
+                                                            ))}
+                                                        </ul>
+                                                    )}
+                                                </div>
+                                            </article>
+                                        );
+                                    })}
+                                </div>
+                            )
                         ) : (
-                            <div className="my-public-tasks-list">
-                                {myPublicTasks.map((task) => {
+                            joinedPublicTasks.length === 0 ? (
+                                <p>You haven't joined any public posts yet.</p>
+                            ) : (
+                                <div className="my-public-tasks-list">
+                                    {joinedPublicTasks.map((task) => {
                                     const joinedUsers = Array.isArray(task.joinedUsers) ? task.joinedUsers : [];
                                     const peopleNeeded = Number.isInteger(task.peopleNeeded) ? task.peopleNeeded : null;
 
@@ -338,60 +449,16 @@ const Dashboard = () => {
                                                 <button
                                                     type="button"
                                                     className="task-edit-save"
-                                                    onClick={() => openPublicTaskEditModal(task)}
+                                                    onClick={() => navigate("/public-tasks")}
                                                 >
-                                                    Edit Post
+                                                    Open Post
                                                 </button>
-                                            </div>
-
-                                            <div className="joined-users-block">
-                                                <strong>Joined users:</strong>
-                                                {joinedUsers.length === 0 ? (
-                                                    <p>No one has joined yet.</p>
-                                                ) : (
-                                                    <ul>
-                                                        {joinedUsers.map((joinedUser) => (
-                                                            <li key={joinedUser.uid || `${task.id}-${joinedUser.email || "unknown"}`}>
-                                                                <div className="joined-user-entry">
-                                                                    <span>{joinedUser.displayName || joinedUser.email || joinedUser.uid}</span>
-                                                                    <details className="joined-user-actions-menu">
-                                                                        <summary
-                                                                            className="joined-user-actions-trigger"
-                                                                            aria-label={`Open actions for ${joinedUser.displayName || joinedUser.email || "this user"}`}
-                                                                        >
-                                                                            ⋯
-                                                                        </summary>
-                                                                        <div className="joined-user-actions-list">
-                                                                            <button
-                                                                                type="button"
-                                                                                onClick={() => handleViewJoinedUserProfile(joinedUser)}
-                                                                            >
-                                                                                View Profile
-                                                                            </button>
-                                                                            <button
-                                                                                type="button"
-                                                                                onClick={() => handleMessageJoinedUser(joinedUser)}
-                                                                            >
-                                                                                Message User
-                                                                            </button>
-                                                                            <button
-                                                                                type="button"
-                                                                                onClick={() => handleReportJoinedUser(joinedUser)}
-                                                                            >
-                                                                                Report User
-                                                                            </button>
-                                                                        </div>
-                                                                    </details>
-                                                                </div>
-                                                            </li>
-                                                        ))}
-                                                    </ul>
-                                                )}
                                             </div>
                                         </article>
                                     );
-                                })}
-                            </div>
+                                    })}
+                                </div>
+                            )
                         )}
                     </section>
                 </div>
