@@ -99,6 +99,14 @@ const PublicTasksPage = () => {
     [filteredTasks, uid],
   );
 
+  const orderedPublicTasksInUniGenda = useMemo(() => {
+    return [...publicTasksInUniGenda].sort((a, b) => {
+      const aJoined = hasUserJoinedTask(a) ? 1 : 0;
+      const bJoined = hasUserJoinedTask(b) ? 1 : 0;
+      return bJoined - aJoined;
+    });
+  }, [publicTasksInUniGenda, uid]);
+
   const isTaskFull = (task) => {
     const joinedUsers = Array.isArray(task.joinedUsers) ? task.joinedUsers : [];
     if (!Number.isInteger(task.peopleNeeded) || task.peopleNeeded <= 0) {
@@ -474,11 +482,11 @@ const PublicTasksPage = () => {
 
             <section className="public-tasks-subsection">
               <h2>Public Posts in UniGenda</h2>
-              {publicTasksInUniGenda.length === 0 ? (
+              {orderedPublicTasksInUniGenda.length === 0 ? (
                 <p>No public posts from other students matched your search.</p>
               ) : (
                 <div className="public-tasks-grid">
-                  {publicTasksInUniGenda.map((task) => {
+                  {orderedPublicTasksInUniGenda.map((task) => {
                     const joinedUsers = Array.isArray(task.joinedUsers) ? task.joinedUsers : [];
                     const alreadyJoined = hasUserJoinedTask(task);
                     const full = isTaskFull(task);
