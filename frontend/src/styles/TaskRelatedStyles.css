@@ -393,3 +393,365 @@
 	background-color: #ffffff;
 	color: #111827;
 }
+
+.public-tasks-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+	gap: 14px;
+}
+
+.public-task-search-wrapper {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	margin-bottom: 14px;
+}
+
+.public-task-search-input {
+	width: 100%;
+	padding: 10px 12px;
+	border: 1px solid #d1d5db;
+	border-radius: 10px;
+	font-family: "Oswald", sans-serif;
+	font-size: 0.95rem;
+	box-sizing: border-box;
+}
+
+.public-task-search-input:focus {
+	outline: none;
+	border-color: #7c5cfc;
+	box-shadow: 0 0 0 2px rgba(124, 92, 252, 0.15);
+}
+
+.public-task-search-hint {
+	color: #6b7280;
+}
+
+.public-task-active-tags,
+.public-task-tags {
+	display: flex;
+	gap: 6px;
+	flex-wrap: wrap;
+}
+
+.public-task-tag-pill {
+	display: inline-flex;
+	align-items: center;
+	padding: 4px 8px;
+	border-radius: 999px;
+	background: #ede9fe;
+	color: #5b21b6;
+	font-size: 0.78rem;
+	font-weight: 500;
+}
+
+.task-tag-section {
+	margin-top: 4px;
+	padding: 12px;
+	border: 1px solid #e2e8f0;
+	border-radius: 12px;
+	background: #f8fafc;
+}
+
+.task-tag-section h4 {
+	margin: 0;
+	font-size: 1rem;
+	color: #111827;
+}
+
+.task-tag-section p {
+	margin: 0.35rem 0 0.7rem;
+	color: #64748b;
+}
+
+.task-tag-combobox {
+	position: relative;
+}
+
+.task-tag-input {
+	display: block;
+	width: 100%;
+	padding: 10px 12px;
+	border: 1px solid #cbd5e1;
+	border-radius: 10px;
+	font-family: "Oswald", sans-serif;
+	font-size: 0.95rem;
+	background: #ffffff;
+	color: #111827;
+	box-sizing: border-box;
+}
+
+.task-tag-input:focus {
+	outline: none;
+	border-color: #7c5cfc;
+	box-shadow: 0 0 0 2px rgba(124, 92, 252, 0.15);
+}
+
+.task-tag-dropdown-menu {
+	position: absolute;
+	top: calc(100% + 6px);
+	left: 0;
+	right: 0;
+	z-index: 10;
+	max-height: 220px;
+	overflow-y: auto;
+	padding: 6px;
+	border: 1px solid #cbd5e1;
+	background: #ffffff;
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+	gap: 4px;
+}
+
+.task-tag-dropdown-item {
+	display: block;
+	width: 100%;
+	padding: 6px 8px;
+	border: 0;
+	background: transparent;
+	color: #111827;
+	font: inherit;
+	font-family: "Oswald", sans-serif;
+	cursor: pointer;
+	text-align: center;
+	font-size: 0.85rem;
+}
+
+.task-tag-dropdown-item:hover {
+	background: #f3f4f6;
+	border-radius: 4px;
+}
+
+.task-tag-dropdown-empty {
+	margin: 0;
+	padding: 6px 12px;
+}
+
+.task-tag-status,
+.task-tag-error {
+	margin: 0.2rem 0 0.5rem;
+	font-size: 0.9rem;
+}
+
+.task-tag-error {
+	color: #b91c1c;
+}
+
+.task-tag-selected-list {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.45rem;
+	margin-top: 0.65rem;
+}
+
+.task-tag-selected-chip {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.4rem;
+	padding: 0.3rem 0.6rem;
+	border: 1px solid #c4b5fd;
+	border-radius: 999px;
+	background: #ede9fe;
+	color: #5b21b6;
+	font-size: 0.85rem;
+}
+
+.task-tag-selected-remove {
+	display: inline-block;
+	color: inherit;
+	font-size: 1rem;
+	line-height: 1;
+	cursor: pointer;
+	padding: 0;
+	user-select: none;
+}
+
+.task-tag-selected-remove:hover {
+	opacity: 0.75;
+}
+
+.public-task-card {
+	border: 1px solid #e5e7eb;
+	border-radius: 12px;
+	padding: 14px;
+	background: #ffffff;
+	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+}
+
+.public-task-card-header {
+	display: flex;
+	justify-content: space-between;
+	align-items: baseline;
+	gap: 8px;
+}
+
+.public-task-card-header h3 {
+	margin: 0;
+}
+
+.public-task-slot-count {
+	font-size: 0.8rem;
+	color: #4b5563;
+}
+
+.public-task-description {
+	margin: 8px 0 10px 0;
+	color: #111827;
+}
+
+.public-task-meta {
+	display: flex;
+	gap: 12px;
+	flex-wrap: wrap;
+	margin-bottom: 10px;
+	color: #6b7280;
+}
+
+.public-task-owner-actions {
+	margin-bottom: 8px;
+}
+
+.public-task-join-button {
+	border: none;
+	border-radius: 8px;
+	padding: 8px 12px;
+	font-family: "Oswald", sans-serif;
+	font-size: 0.9rem;
+	background: #7c5cfc;
+	color: #fff;
+	cursor: pointer;
+}
+
+.public-task-join-button:hover {
+	background: #6a4ae8;
+}
+
+.public-task-join-button:disabled {
+	opacity: 0.6;
+	cursor: not-allowed;
+}
+
+.joined-users-block {
+	margin-top: 10px;
+	padding-top: 10px;
+	border-top: 1px solid #e5e7eb;
+}
+
+.joined-users-block p {
+	margin: 6px 0 0 0;
+}
+
+.joined-users-block ul {
+	margin: 6px 0 0 18px;
+	padding: 0;
+}
+
+.task-edit-modal {
+	width: min(560px, 100%);
+	padding: 20px;
+}
+
+.task-edit-modal h3 {
+	margin: 0 0 14px 0;
+}
+
+.task-edit-form {
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+}
+
+.task-edit-form label {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	font-size: 0.95rem;
+	color: #374151;
+}
+
+.task-edit-form input,
+.task-edit-form select,
+.task-edit-form textarea {
+	border: 1px solid #d1d5db;
+	border-radius: 10px;
+	padding: 10px 12px;
+	font-family: "Oswald", sans-serif;
+	font-size: 0.95rem;
+	box-sizing: border-box;
+}
+
+.task-edit-form input:focus,
+.task-edit-form select:focus,
+.task-edit-form textarea:focus {
+	outline: none;
+	border-color: #7c5cfc;
+	box-shadow: 0 0 0 2px rgba(124, 92, 252, 0.15);
+}
+
+.task-edit-warning {
+	margin: 0;
+	padding: 10px 12px;
+	border-radius: 10px;
+	border: 1px solid #fca5a5;
+	background: #fef2f2;
+	color: #991b1b;
+	font-size: 0.9rem;
+}
+
+.task-edit-actions {
+	display: flex;
+	justify-content: flex-end;
+	gap: 10px;
+	margin-top: 6px;
+}
+
+.task-edit-cancel,
+.task-edit-save {
+	border: none;
+	border-radius: 8px;
+	padding: 8px 12px;
+	font-family: "Oswald", sans-serif;
+	font-size: 0.9rem;
+	cursor: pointer;
+}
+
+.task-edit-delete {
+	border: none;
+	border-radius: 8px;
+	padding: 8px 12px;
+	font-family: "Oswald", sans-serif;
+	font-size: 0.9rem;
+	cursor: pointer;
+	margin-right: auto;
+	background: #ef4444;
+	color: #fff;
+}
+
+.task-edit-delete:hover {
+	background: #dc2626;
+}
+
+.task-edit-cancel {
+	background: #e5e7eb;
+	color: #111827;
+}
+
+.task-edit-cancel:hover {
+	background: #d1d5db;
+}
+
+.task-edit-save {
+	background: #7c5cfc;
+	color: #fff;
+}
+
+.task-edit-save:hover {
+	background: #6a4ae8;
+}
+
+.task-edit-delete:disabled,
+.task-edit-cancel:disabled,
+.task-edit-save:disabled {
+	opacity: 0.65;
+	cursor: not-allowed;
+}

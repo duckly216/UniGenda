@@ -25,6 +25,103 @@
   color: #64748b;
 }
 
+.moderation-tag-section {
+  margin: 0 0 1rem;
+  padding: 0.9rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  background: #f8fafc;
+}
+
+.moderation-tag-section h2 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.moderation-tag-section p {
+  margin: 0.35rem 0 0.7rem;
+  color: #64748b;
+}
+
+.moderation-tag-add-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.55rem;
+}
+
+.moderation-tag-add-row input {
+  border: 1px solid #cbd5e1;
+  border-radius: 9px;
+  padding: 0.5rem 0.65rem;
+  font-family: "Oswald", sans-serif;
+}
+
+.moderation-tag-add-button {
+  border: none;
+  border-radius: 9px;
+  padding: 0.5rem 0.9rem;
+  cursor: pointer;
+  background: #7c5cfc;
+  color: #ffffff;
+  font-family: "Oswald", sans-serif;
+  font-size: 0.95rem;
+}
+
+.moderation-tag-add-button:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.moderation-tag-list {
+  margin-top: 0.45rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.moderation-tag-chip {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid #c4b5fd;
+  background: #ede9fe;
+  color: #5b21b6;
+  border-radius: 999px;
+  padding: 0.2rem 0.55rem;
+  font-size: 0.8rem;
+  gap: 6px;
+}
+
+
+.moderation-tag-delete {
+  border: none;
+  background: transparent;
+  color: inherit;
+  font-size: 1rem;
+  line-height: 1;
+  padding: 0;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.moderation-tag-delete:hover {
+  opacity: 0.75;
+}
+
+.moderation-tag-delete:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.moderation-reports-section {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 2px solid #e2e8f0;
+}
+
+.moderation-reports-section h2 {
+  margin: 0 0 0.7rem;
+  font-size: 1.1rem;
+}
+
 .moderation-error {
   color: #b91c1c;
 }
