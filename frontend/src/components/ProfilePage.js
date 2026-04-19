@@ -284,6 +284,15 @@ const ProfilePage = () => {
     }
   };
 
+  const handleOpenMessages = () => {
+    if (!userId) {
+      navigate("/messages");
+      return;
+    }
+
+    navigate(`/messages/${userId}`);
+  };
+
   const closeReportModal = () => {
     if (submittingReport) {
       return;
@@ -357,7 +366,9 @@ const ProfilePage = () => {
                   </button>
                 )}
                 {!isOwnProfile && (
-                  <button type="button">Message User (WIP)</button>
+                  <button type="button" onClick={handleOpenMessages}>
+                    Message User (WIP)
+                  </button>
                 )}
                 <button type="button" onClick={openReportModal}>
                   Report User

@@ -8,6 +8,7 @@ import Dashboard from "./components/Dashboard";
 import NavBar from "./components/NavBar";
 import Calendar from "./components/Calendar";
 import ProfilePage from "./components/ProfilePage";
+import MessagesPage from "./components/MessagesPage";
 import ModerationPage from "./components/ModerationPage";
 import FriendsPage from "./components/FriendsPage";
 import TaskListPage from "./components/task-components/TaskListPage";
@@ -111,6 +112,32 @@ function App() {
           }
         />
         <Route
+          path="/messages"
+          element={
+            <ProtectedRoute user={currentUser} authLoading={authLoading}>
+              <div style={{ display: "flex" }}>
+                <NavBar user={currentUser} />
+                <div style={{ marginLeft: "60px", flex: 1 }}>
+                  <MessagesPage />
+                </div>
+              </div>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/messages/:userId"
+          element={
+            <ProtectedRoute user={currentUser} authLoading={authLoading}>
+              <div style={{ display: "flex" }}>
+                <NavBar user={currentUser} />
+                <div style={{ marginLeft: "60px", flex: 1 }}>
+                  <MessagesPage />
+                </div>
+              </div>
+            </ProtectedRoute>
+          }
+        />
+        <Route
           path="/tasks"
           element={
             <ProtectedRoute user={currentUser} authLoading={authLoading}>
@@ -149,17 +176,6 @@ function App() {
                 <div style={{ marginLeft: "60px", flex: 1 }}>
                   <ModerationPage />
                 </div>
-              </div>
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/settings"
-          element={
-            <ProtectedRoute user={currentUser} authLoading={authLoading}>
-              <div style={{ display: "flex" }}>
-                <NavBar user={currentUser} />
-                <div style={{ marginLeft: "60px", flex: 1 }}></div>
               </div>
             </ProtectedRoute>
           }

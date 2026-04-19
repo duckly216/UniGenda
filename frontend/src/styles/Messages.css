@@ -1,0 +1,32 @@
+.messages-page {
+  min-height: 100vh;
+  padding: 2rem;
+  background: #f7f8fc;
+  font-family: "Oswald", sans-serif;
+}
+
+.messages-card {
+  width: min(760px, 100%);
+  margin: 0 auto;
+  background: #ffffff;
+  border-radius: 14px;
+  border: 1px solid #e5e7eb;
+  padding: 1.5rem;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
+}
+
+.messages-card h1 {
+  margin: 0 0 0.6rem;
+  color: #111827;
+}
+
+.messages-card p {
+  margin: 0;
+  color: #475569;
+}
+
+.messages-target {
+  margin-top: 0.9rem;
+  color: #1d4ed8;
+  font-size: 0.92rem;
+}

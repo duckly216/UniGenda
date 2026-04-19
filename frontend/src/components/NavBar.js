@@ -10,6 +10,7 @@ const NAV_ITEMS = [
   { icon: "🌍", label: "Public Tasks", path: "/public-tasks", group: "main" },
   { icon: "📅", label: "Calendar", path: "/calendar", group: "main" },
   { icon: "👥", label: "Friends", path: "/friends", group: "main" },
+  { icon: "💬", label: "Messages", path: "/messages", group: "main" },
   {
     icon: "🛡️",
     label: "Moderation",
@@ -17,7 +18,6 @@ const NAV_ITEMS = [
     group: "main",
     adminOnly: true,
   },
-  { icon: "⚙️", label: "Settings", path: "/settings", group: "bottom" },
 ];
 
 const NavBar = ({ user }) => {
