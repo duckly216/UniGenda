@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import axios from "axios";
 import { useNavigate, useParams } from "react-router-dom";
-import { updateEmail, updateProfile } from "firebase/auth";
+import { updateEmail, updateProfile, signOut } from "firebase/auth";
 import { auth } from "../firebase";
 import "../styles/Profile.css";
 
@@ -212,6 +212,15 @@ const ProfilePage = ({ currentUser }) => {
     setShowReportModal(true);
   };
 
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      navigate("/login");
+    } catch (err) {
+      console.error("Error logging out:", err);
+    }
+  };
+
   const closeReportModal = () => {
     if (submittingReport) {
       return;
@@ -283,6 +292,11 @@ const ProfilePage = ({ currentUser }) => {
                 <button type="button" onClick={openReportModal}>
                   Report User
                 </button>
+                {isOwnProfile && (
+                  <button type="button" onClick={handleLogout}>
+                    Logout
+                  </button>
+                )}
               </div>
             )}
           </div>
@@ -309,6 +323,18 @@ const ProfilePage = ({ currentUser }) => {
               <span className="profile-label">School</span>
               <span>{profile.school || "Not set"}</span>
             </div>
+          </div>
+        )}
+
+        {!loading && !error && isOwnProfile && (
+          <div className="profile-logout-section">
+            <button
+              type="button"
+              className="profile-logout-button"
+              onClick={handleLogout}
+            >
+              Logout
+            </button>
           </div>
         )}
       </div>

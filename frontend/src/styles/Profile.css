@@ -172,10 +172,44 @@
   gap: 0.35rem;
 }
 
-.edit-profile-label {
-  font-size: 0.9rem;
+.profile-logout-section {
+  margin-top: 1.2rem;
+  padding-top: 1rem;
+  border-top: 1px solid #e5e7eb;
+}
+
+.profile-logout-button {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  background-color: #ef4444;
+  color: white;
+  border: none;
+  border-radius: 9px;
+  font-family: "Oswald", sans-serif;
+  font-size: 0.95rem;
   font-weight: 600;
-  color: #334155;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.profile-logout-button:hover {
+  background-color: #dc2626;
+}
+
+.profile-logout-button:active {
+  background-color: #b91c1c;
+}
+
+@media (max-width: 640px) {
+  .profile-logout-section {
+    margin-top: 1rem;
+    padding-top: 0.75rem;
+  }
+
+  .profile-logout-button {
+    padding: 0.65rem 0.75rem;
+    font-size: 0.9rem;
+  }
 }
 
 .edit-profile-input {
