@@ -3,6 +3,7 @@ import axios from "axios";
 import { auth } from "../firebase";
 import { onAuthStateChanged } from "firebase/auth";
 import { useNavigate } from "react-router-dom";
+import LoadingPage from "./LoadingPage";
 import "../styles/Friends.css";
 
 const BASE_URL = "http://127.0.0.1:5000";
@@ -15,6 +16,7 @@ const FriendsPage = () => {
     const [outgoingRequests, setOutgoingRequests] = useState([]);
     const [friends, setFriends] = useState([]);
     const [loading, setLoading] = useState(false);
+    const [pageLoading, setPageLoading] = useState(true);
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -47,6 +49,8 @@ const FriendsPage = () => {
             setFriends(friendsRes.data || []);
         } catch (err) {
             console.error("Error loading friend data:", err);
+        } finally {
+            setPageLoading(false);
         }
     };
 
@@ -149,6 +153,10 @@ const FriendsPage = () => {
             </button>
         );
     };
+
+    if (pageLoading) {
+        return <LoadingPage message="Loading friends..." />;
+    }
 
     return (
         <div className="friends-page">
