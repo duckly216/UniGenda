@@ -14,7 +14,7 @@ const Calendar = () => {
       if (user) {
         try {
           const response = await axios.get(
-            `http://127.0.0.1:5000/tasks/${user.uid}?limit=100`,
+            `http://127.0.0.1:5000/users/${user.uid}/tasks?limit=100`,
           );
           setTasks(response.data);
         } catch (err) {
