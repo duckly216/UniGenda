@@ -1,10 +1,17 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
 import { auth } from '../../firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import '../../styles/TaskRelatedStyles.css';
 
-const TaskList = ({ refreshTrigger, limit = 10, showAllStatuses = false }) => {
+const TaskList = ({
+  refreshTrigger,
+  limit = 10,
+  showAllStatuses = false,
+  enablePagination = false,
+  pageSize = 10,
+  onlyPrivate = false
+}) => {
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [uid, setUid] = useState(null);
@@ -13,6 +20,7 @@ const TaskList = ({ refreshTrigger, limit = 10, showAllStatuses = false }) => {
   const [openMenuTaskId, setOpenMenuTaskId] = useState(null);
   const [expandedTaskIds, setExpandedTaskIds] = useState({});
   const [activeTab, setActiveTab] = useState('uncompleted'); // 'uncompleted' or 'completed'
+  const [currentPage, setCurrentPage] = useState(1);
   const [editingTask, setEditingTask] = useState(null);
   const [editForm, setEditForm] = useState({
     title: '',
@@ -244,11 +252,44 @@ const TaskList = ({ refreshTrigger, limit = 10, showAllStatuses = false }) => {
     }
   };
 
-  const completedTasks = tasks.filter((task) => task.status === 'completed');
-  const uncompletedTasks = tasks.filter((task) => task.status !== 'completed');
+  const filteredByVisibilityTasks = useMemo(() => {
+    if (!onlyPrivate) {
+      return tasks;
+    }
+
+    return tasks.filter((task) => {
+      const taskVisibility = String(task?.visibility || (task?.isPublic ? 'public' : 'private')).trim().toLowerCase();
+      return taskVisibility !== 'public';
+    });
+  }, [tasks, onlyPrivate]);
+
+  const completedTasks = filteredByVisibilityTasks.filter((task) => task.status === 'completed');
+  const uncompletedTasks = filteredByVisibilityTasks.filter((task) => task.status !== 'completed');
 
   // Filter tasks based on active tab
   const filteredTasks = activeTab === 'completed' ? completedTasks : uncompletedTasks;
+  const normalizedPageSize = Number.isInteger(pageSize) && pageSize > 0 ? pageSize : 10;
+  const totalPages = Math.max(1, Math.ceil(filteredTasks.length / normalizedPageSize));
+  const pageNumbers = Array.from({ length: totalPages }, (_, index) => index + 1);
+
+  const paginatedFilteredTasks = useMemo(() => {
+    if (!enablePagination || showAllStatuses) {
+      return filteredTasks;
+    }
+
+    const startIndex = (currentPage - 1) * normalizedPageSize;
+    return filteredTasks.slice(startIndex, startIndex + normalizedPageSize);
+  }, [filteredTasks, enablePagination, showAllStatuses, currentPage, normalizedPageSize]);
+
+  useEffect(() => {
+    if (!enablePagination || showAllStatuses) return;
+    setCurrentPage((page) => Math.min(page, totalPages));
+  }, [enablePagination, showAllStatuses, totalPages]);
+
+  useEffect(() => {
+    if (!enablePagination || showAllStatuses) return;
+    setCurrentPage(1);
+  }, [enablePagination, showAllStatuses, activeTab]);
 
   const renderTaskItems = (taskItems) => (
     taskItems.map(task => (
@@ -390,7 +431,45 @@ const TaskList = ({ refreshTrigger, limit = 10, showAllStatuses = false }) => {
 
       {!showAllStatuses ? (
         filteredTasks.length > 0 ? (
-          renderTaskItems(filteredTasks)
+          <>
+            {renderTaskItems(paginatedFilteredTasks)}
+            {enablePagination && (
+              <div className="public-task-pagination">
+                <button
+                  type="button"
+                  className="public-task-page-button"
+                  onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
+                  disabled={currentPage === 1}
+                >
+                  Previous
+                </button>
+                <div className="public-task-page-numbers" aria-label="Dashboard private tasks page numbers">
+                  {pageNumbers.map((pageNumber) => (
+                    <button
+                      key={`dashboard-private-tasks-page-${pageNumber}`}
+                      type="button"
+                      className={`public-task-page-button ${currentPage === pageNumber ? 'public-task-page-button-active' : ''}`}
+                      onClick={() => setCurrentPage(pageNumber)}
+                      aria-current={currentPage === pageNumber ? 'page' : undefined}
+                    >
+                      {pageNumber}
+                    </button>
+                  ))}
+                </div>
+                <span className="public-task-page-indicator">
+                  Page {currentPage} of {totalPages}
+                </span>
+                <button
+                  type="button"
+                  className="public-task-page-button"
+                  onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))}
+                  disabled={currentPage >= totalPages}
+                >
+                  Next
+                </button>
+              </div>
+            )}
+          </>
         ) : (
           <div className="empty-tasks">
             <p>

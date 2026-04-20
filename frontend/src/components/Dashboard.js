@@ -1,4 +1,4 @@
-import React, {useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import axios from "axios";
 import { auth } from "../firebase"; 
 import { onAuthStateChanged, signOut } from "firebase/auth"; //
@@ -9,6 +9,9 @@ import TaskForm from './task-components/TaskForm';
 import TaskList from './task-components/TaskList';
 import LoadingPage from "./LoadingPage";
 
+// Number of items to show per page in the dashboard public posts sections
+const DASHBOARD_ITEMS_PER_PAGE = 10;
+
 
 const Dashboard = () => {
     const [userData, setUserData] = useState(null);
@@ -18,6 +21,8 @@ const Dashboard = () => {
     const [showCreateTaskPopup, setShowCreateTaskPopup] = useState(false);
     const [myPublicTasks, setMyPublicTasks] = useState([]);
     const [joinedPublicTasks, setJoinedPublicTasks] = useState([]);
+    const [myPublicPostsPage, setMyPublicPostsPage] = useState(1);
+    const [joinedPublicPostsPage, setJoinedPublicPostsPage] = useState(1);
     const [activePublicPostsTab, setActivePublicPostsTab] = useState("my");
     const [loadingMyPublicTasks, setLoadingMyPublicTasks] = useState(false);
     const [loadingProfile, setLoadingProfile] = useState(true);
@@ -301,7 +306,44 @@ const Dashboard = () => {
             : userData?.school === "SF"
                 ? "Santa Fe College"
                 : userData?.school;
+// The dashboard public posts sections are paginated on the frontend. 
+// We calculate the total pages and the items to show for the current page here.
+    const myPublicPostsTotalPages = Math.max(1, Math.ceil(myPublicTasks.length / DASHBOARD_ITEMS_PER_PAGE));
+    const joinedPublicPostsTotalPages = Math.max(1, Math.ceil(joinedPublicTasks.length / DASHBOARD_ITEMS_PER_PAGE));
 
+    const myPublicPostsPageNumbers = useMemo(
+        () => Array.from({ length: myPublicPostsTotalPages }, (_, index) => index + 1),
+        [myPublicPostsTotalPages],
+    );
+
+    const joinedPublicPostsPageNumbers = useMemo(
+        () => Array.from({ length: joinedPublicPostsTotalPages }, (_, index) => index + 1),
+        [joinedPublicPostsTotalPages],
+    );
+
+    const paginatedMyPublicTasks = useMemo(() => {
+        const startIndex = (myPublicPostsPage - 1) * DASHBOARD_ITEMS_PER_PAGE;
+        return myPublicTasks.slice(startIndex, startIndex + DASHBOARD_ITEMS_PER_PAGE);
+    }, [myPublicTasks, myPublicPostsPage]);
+
+    const paginatedJoinedPublicTasks = useMemo(() => {
+        const startIndex = (joinedPublicPostsPage - 1) * DASHBOARD_ITEMS_PER_PAGE;
+        return joinedPublicTasks.slice(startIndex, startIndex + DASHBOARD_ITEMS_PER_PAGE);
+    }, [joinedPublicTasks, joinedPublicPostsPage]);
+
+    useEffect(() => {
+        setMyPublicPostsPage((page) => Math.min(page, myPublicPostsTotalPages));
+    }, [myPublicPostsTotalPages]);
+
+    useEffect(() => {
+        setJoinedPublicPostsPage((page) => Math.min(page, joinedPublicPostsTotalPages));
+    }, [joinedPublicPostsTotalPages]);
+
+    useEffect(() => {
+        setMyPublicPostsPage(1);
+        setJoinedPublicPostsPage(1);
+    }, [activePublicPostsTab]);
+// Note: The dashboard relies on the profile being loaded to show the welcome message and affiliation, and on the public tasks loading to show the public posts sections, so we show a loading screen until those are ready.
     if (loadingProfile || (authUser?.uid && loadingMyPublicTasks)) {
         return <LoadingPage message="Loading dashboard..." />;
     }
@@ -328,7 +370,7 @@ const Dashboard = () => {
                         </button>
                     </section>
 
-                    <TaskList refreshTrigger={refresh} />
+                    <TaskList refreshTrigger={refresh} limit={null} onlyPrivate={true} enablePagination={true} pageSize={10} />
 
                     </section>
 
@@ -360,8 +402,9 @@ const Dashboard = () => {
                             myPublicTasks.length === 0 ? (
                                 <p>You haven't created any public tasks yet.</p>
                             ) : (
+                                <>
                                 <div className="my-public-tasks-list">
-                                    {myPublicTasks.map((task) => {
+                                    {paginatedMyPublicTasks.map((task) => {
                                         const joinedUsers = Array.isArray(task.joinedUsers) ? task.joinedUsers : [];
                                         const peopleNeeded = Number.isInteger(task.peopleNeeded) ? task.peopleNeeded : null;
 
@@ -441,13 +484,49 @@ const Dashboard = () => {
                                         );
                                     })}
                                 </div>
+                                <div className="public-task-pagination">
+                                    <button
+                                        type="button"
+                                        className="public-task-page-button"
+                                        onClick={() => setMyPublicPostsPage((page) => Math.max(1, page - 1))}
+                                        disabled={myPublicPostsPage === 1}
+                                    >
+                                        Previous
+                                    </button>
+                                    <div className="public-task-page-numbers" aria-label="Dashboard my public posts page numbers">
+                                        {myPublicPostsPageNumbers.map((pageNumber) => (
+                                            <button
+                                                key={`dashboard-my-public-posts-page-${pageNumber}`}
+                                                type="button"
+                                                className={`public-task-page-button ${myPublicPostsPage === pageNumber ? "public-task-page-button-active" : ""}`}
+                                                onClick={() => setMyPublicPostsPage(pageNumber)}
+                                                aria-current={myPublicPostsPage === pageNumber ? "page" : undefined}
+                                            >
+                                                {pageNumber}
+                                            </button>
+                                        ))}
+                                    </div>
+                                    <span className="public-task-page-indicator">
+                                        Page {myPublicPostsPage} of {myPublicPostsTotalPages}
+                                    </span>
+                                    <button
+                                        type="button"
+                                        className="public-task-page-button"
+                                        onClick={() => setMyPublicPostsPage((page) => Math.min(myPublicPostsTotalPages, page + 1))}
+                                        disabled={myPublicPostsPage >= myPublicPostsTotalPages}
+                                    >
+                                        Next
+                                    </button>
+                                </div>
+                                </>
                             )
                         ) : (
                             joinedPublicTasks.length === 0 ? (
                                 <p>You haven't joined any public posts yet.</p>
                             ) : (
+                                <>
                                 <div className="my-public-tasks-list">
-                                    {joinedPublicTasks.map((task) => {
+                                    {paginatedJoinedPublicTasks.map((task) => {
                                     const joinedUsers = Array.isArray(task.joinedUsers) ? task.joinedUsers : [];
                                     const peopleNeeded = Number.isInteger(task.peopleNeeded) ? task.peopleNeeded : null;
 
@@ -475,6 +554,41 @@ const Dashboard = () => {
                                     );
                                     })}
                                 </div>
+                                <div className="public-task-pagination">
+                                    <button
+                                        type="button"
+                                        className="public-task-page-button"
+                                        onClick={() => setJoinedPublicPostsPage((page) => Math.max(1, page - 1))}
+                                        disabled={joinedPublicPostsPage === 1}
+                                    >
+                                        Previous
+                                    </button>
+                                    <div className="public-task-page-numbers" aria-label="Dashboard joined public posts page numbers">
+                                        {joinedPublicPostsPageNumbers.map((pageNumber) => (
+                                            <button
+                                                key={`dashboard-joined-public-posts-page-${pageNumber}`}
+                                                type="button"
+                                                className={`public-task-page-button ${joinedPublicPostsPage === pageNumber ? "public-task-page-button-active" : ""}`}
+                                                onClick={() => setJoinedPublicPostsPage(pageNumber)}
+                                                aria-current={joinedPublicPostsPage === pageNumber ? "page" : undefined}
+                                            >
+                                                {pageNumber}
+                                            </button>
+                                        ))}
+                                    </div>
+                                    <span className="public-task-page-indicator">
+                                        Page {joinedPublicPostsPage} of {joinedPublicPostsTotalPages}
+                                    </span>
+                                    <button
+                                        type="button"
+                                        className="public-task-page-button"
+                                        onClick={() => setJoinedPublicPostsPage((page) => Math.min(joinedPublicPostsTotalPages, page + 1))}
+                                        disabled={joinedPublicPostsPage >= joinedPublicPostsTotalPages}
+                                    >
+                                        Next
+                                    </button>
+                                </div>
+                                </>
                             )
                         )}
                     </section>

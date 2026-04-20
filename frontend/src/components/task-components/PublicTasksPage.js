@@ -6,6 +6,8 @@ import { onAuthStateChanged } from "firebase/auth";
 import LoadingPage from "../LoadingPage";
 import "../../styles/TaskRelatedStyles.css";
 
+const POSTS_PER_PAGE = 10;
+
 const PublicTasksPage = () => {
   const navigate = useNavigate();
   const [uid, setUid] = useState(null);
@@ -15,6 +17,10 @@ const PublicTasksPage = () => {
   const [searchInput, setSearchInput] = useState("");
   const [editingOwnedTask, setEditingOwnedTask] = useState(null);
   const [savingOwnedTask, setSavingOwnedTask] = useState(false);
+  const [myPostsPage, setMyPostsPage] = useState(1);
+  const [otherPostsPage, setOtherPostsPage] = useState(1);
+  const [showMyPublicPosts, setShowMyPublicPosts] = useState(true);
+  const [showOtherPublicPosts, setShowOtherPublicPosts] = useState(true);
   const [editOwnedForm, setEditOwnedForm] = useState({
     title: "",
     dueDate: "",
@@ -106,6 +112,40 @@ const PublicTasksPage = () => {
       return bJoined - aJoined;
     });
   }, [publicTasksInUniGenda, uid]);
+
+  const myPostsTotalPages = Math.max(1, Math.ceil(myPublicTasks.length / POSTS_PER_PAGE));
+  const otherPostsTotalPages = Math.max(1, Math.ceil(orderedPublicTasksInUniGenda.length / POSTS_PER_PAGE));
+  const myPostsPageNumbers = useMemo(
+    () => Array.from({ length: myPostsTotalPages }, (_, index) => index + 1),
+    [myPostsTotalPages],
+  );
+  const otherPostsPageNumbers = useMemo(
+    () => Array.from({ length: otherPostsTotalPages }, (_, index) => index + 1),
+    [otherPostsTotalPages],
+  );
+
+  const paginatedMyPublicTasks = useMemo(() => {
+    const startIndex = (myPostsPage - 1) * POSTS_PER_PAGE;
+    return myPublicTasks.slice(startIndex, startIndex + POSTS_PER_PAGE);
+  }, [myPublicTasks, myPostsPage]);
+
+  const paginatedOtherPublicTasks = useMemo(() => {
+    const startIndex = (otherPostsPage - 1) * POSTS_PER_PAGE;
+    return orderedPublicTasksInUniGenda.slice(startIndex, startIndex + POSTS_PER_PAGE);
+  }, [orderedPublicTasksInUniGenda, otherPostsPage]);
+
+  useEffect(() => {
+    setMyPostsPage((currentPage) => Math.min(currentPage, myPostsTotalPages));
+  }, [myPostsTotalPages]);
+
+  useEffect(() => {
+    setOtherPostsPage((currentPage) => Math.min(currentPage, otherPostsTotalPages));
+  }, [otherPostsTotalPages]);
+
+  useEffect(() => {
+    setMyPostsPage(1);
+    setOtherPostsPage(1);
+  }, [parsedSearch.titleQuery, parsedSearch.tagFilters.join("|")]);
 
   const isTaskFull = (task) => {
     const joinedUsers = Array.isArray(task.joinedUsers) ? task.joinedUsers : [];
@@ -390,12 +430,22 @@ const PublicTasksPage = () => {
         ) : (
           <div className="public-tasks-section-stack">
             <section className="public-tasks-subsection">
-              <h2>My Public Posts</h2>
-              {myPublicTasks.length === 0 ? (
+              <div className="public-tasks-subsection-header">
+                <h2>My Public Posts</h2>
+                <button
+                  type="button"
+                  className="public-tasks-section-toggle"
+                  onClick={() => setShowMyPublicPosts((prev) => !prev)}
+                >
+                  {showMyPublicPosts ? "Hide" : "Expand"}
+                </button>
+              </div>
+              {showMyPublicPosts && (myPublicTasks.length === 0 ? (
                 <p>You haven't created any public posts yet.</p>
               ) : (
+                <>
                 <div className="public-tasks-grid">
-                  {myPublicTasks.map((task) => {
+                  {paginatedMyPublicTasks.map((task) => {
                     const joinedUsers = Array.isArray(task.joinedUsers) ? task.joinedUsers : [];
 
                     return (
@@ -494,16 +544,61 @@ const PublicTasksPage = () => {
                     );
                   })}
                 </div>
-              )}
+                <div className="public-task-pagination">
+                  <button
+                    type="button"
+                    className="public-task-page-button"
+                    onClick={() => setMyPostsPage((page) => Math.max(1, page - 1))}
+                    disabled={myPostsPage === 1}
+                  >
+                    Previous
+                  </button>
+                  <div className="public-task-page-numbers" aria-label="My public posts page numbers">
+                    {myPostsPageNumbers.map((pageNumber) => (
+                      <button
+                        key={`my-post-page-${pageNumber}`}
+                        type="button"
+                        className={`public-task-page-button ${myPostsPage === pageNumber ? "public-task-page-button-active" : ""}`}
+                        onClick={() => setMyPostsPage(pageNumber)}
+                        aria-current={myPostsPage === pageNumber ? "page" : undefined}
+                      >
+                        {pageNumber}
+                      </button>
+                    ))}
+                  </div>
+                  <span className="public-task-page-indicator">
+                    Page {myPostsPage} of {myPostsTotalPages}
+                  </span>
+                  <button
+                    type="button"
+                    className="public-task-page-button"
+                    onClick={() => setMyPostsPage((page) => Math.min(myPostsTotalPages, page + 1))}
+                    disabled={myPostsPage >= myPostsTotalPages}
+                  >
+                    Next
+                  </button>
+                </div>
+                </>
+              ))}
             </section>
 
             <section className="public-tasks-subsection">
-              <h2>Public Posts in UniGenda</h2>
-              {orderedPublicTasksInUniGenda.length === 0 ? (
+              <div className="public-tasks-subsection-header">
+                <h2>Public Posts in UniGenda</h2>
+                <button
+                  type="button"
+                  className="public-tasks-section-toggle"
+                  onClick={() => setShowOtherPublicPosts((prev) => !prev)}
+                >
+                  {showOtherPublicPosts ? "Hide" : "Expand"}
+                </button>
+              </div>
+              {showOtherPublicPosts && (orderedPublicTasksInUniGenda.length === 0 ? (
                 <p>No public posts from other students matched your search.</p>
               ) : (
+                <>
                 <div className="public-tasks-grid">
-                  {orderedPublicTasksInUniGenda.map((task) => {
+                  {paginatedOtherPublicTasks.map((task) => {
                     const joinedUsers = Array.isArray(task.joinedUsers) ? task.joinedUsers : [];
                     const alreadyJoined = hasUserJoinedTask(task);
                     const full = isTaskFull(task);
@@ -571,7 +666,42 @@ const PublicTasksPage = () => {
                     );
                   })}
                 </div>
-              )}
+                <div className="public-task-pagination">
+                  <button
+                    type="button"
+                    className="public-task-page-button"
+                    onClick={() => setOtherPostsPage((page) => Math.max(1, page - 1))}
+                    disabled={otherPostsPage === 1}
+                  >
+                    Previous
+                  </button>
+                  <div className="public-task-page-numbers" aria-label="Public posts in UniGenda page numbers">
+                    {otherPostsPageNumbers.map((pageNumber) => (
+                      <button
+                        key={`other-post-page-${pageNumber}`}
+                        type="button"
+                        className={`public-task-page-button ${otherPostsPage === pageNumber ? "public-task-page-button-active" : ""}`}
+                        onClick={() => setOtherPostsPage(pageNumber)}
+                        aria-current={otherPostsPage === pageNumber ? "page" : undefined}
+                      >
+                        {pageNumber}
+                      </button>
+                    ))}
+                  </div>
+                  <span className="public-task-page-indicator">
+                    Page {otherPostsPage} of {otherPostsTotalPages}
+                  </span>
+                  <button
+                    type="button"
+                    className="public-task-page-button"
+                    onClick={() => setOtherPostsPage((page) => Math.min(otherPostsTotalPages, page + 1))}
+                    disabled={otherPostsPage >= otherPostsTotalPages}
+                  >
+                    Next
+                  </button>
+                </div>
+                </>
+              ))}
             </section>
           </div>
         )}
