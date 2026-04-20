@@ -1,12 +1,29 @@
 import { useState, useEffect } from "react";
 import { auth } from "../firebase";
 
-const Chat = () => {
-  const chatId = "80jfYS4cf0G4xLDHpBYK";
-  const uid = auth.currentUser?.uid;
+const Chat = ({ chatId }) => {
+  const [uid, setUid] = useState(null);
+
+  useEffect(() => {
+    const unsub = auth.onAuthStateChanged(user => {
+      setUid(user?.uid || null);
+    });
+    return unsub;
+  }, []);
 
   const [messages, setMessages] = useState([]);
   const [text, setText] = useState("");
+
+  const formatTime = (ts) => {
+    if (!ts) return "";
+
+    if (ts.seconds) {
+      return new Date(ts.seconds * 1000).toLocaleString();
+    }
+
+    const d = new Date(ts);
+    return isNaN(d) ? "" : d.toLocaleString();
+  };
 
   const getMessages = async () => {
     const res = await fetch(`http://127.0.0.1:5000/chats/${chatId}/messages`);
@@ -56,9 +73,7 @@ const Chat = () => {
         <div key={i}>
           <strong>{m.username}:</strong> {m.text}
           <div style={{ fontSize: "12px", color: "gray" }}>
-            {m.timestamp
-              ? new Date(m.timestamp.seconds * 1000).toLocaleString()
-              : ""}
+            {formatTime(m.timestamp)}
           </div>
         </div>
       ))}

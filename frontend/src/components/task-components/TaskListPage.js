@@ -1,6 +1,7 @@
 // This is a whole webpage dedicated to displaying a user's ENTIRE list of tasks
 // For simplicity, we will not implement pagination or filtering here, but it can be added in the future
 import React, { useState } from "react";
+import { Link } from "react-router-dom";
 import TaskForm from "./TaskForm";
 import TaskList from "./TaskList";
 import "../../styles/TaskRelatedStyles.css";
@@ -33,6 +34,15 @@ const TaskListPage = () => {
 
 			<section className="tasks-page-section">
 				<TaskList refreshTrigger={refresh} limit={null} showAllStatuses={true} />
+			</section>
+
+			<section className="tasks-page-section">
+				<h2>Public Tasks</h2>
+				<Link to="/public-tasks">
+					<button type="button" style={{ marginTop: "10px" }}>
+						View Public Tasks
+					</button>
+				</Link>
 			</section>
 
 			{showCreateTaskPopup && (

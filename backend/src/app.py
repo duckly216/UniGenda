@@ -226,28 +226,26 @@ def get_user_tasks(uid):
     except Exception as e:
         return jsonify({"error": str(e)}), 400
     
-#get_comment
-@app.route('/tasks/<task_id>/comments', methods=['GET'])
+@app.route('/public_tasks/<task_id>/comments', methods=['GET'])
 def get_task_comments(task_id):
     try:
         task_comments = db.collection('public_tasks') \
             .document(task_id) \
             .collection('comments') \
-            .order_by('timestamp', direction=firestore.Query.ASCENDING) \
             .stream()
         comment_list = [comment.to_dict() | {"id": comment.id} for comment in task_comments]
         return jsonify(comment_list), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 400
     
-#post_comment
-@app.route('/tasks/<task_id>/comments', methods=['POST'])
+@app.route('/public_tasks/<task_id>/comments', methods=['POST'])
 def add_comment(task_id):
     data = request.json
 
     comment = {
         "text": data.get("text"),
         "user_id": data.get("user_id"),
+        "username": data.get("username"),
         "timestamp": firestore.SERVER_TIMESTAMP
     }
 
@@ -442,6 +440,41 @@ def delete_public_task(task_id):
 
     return jsonify({"message": "Task deleted"}), 200
 ## -- --------------- -- ##
+
+# --- CHAT MESSAGES ---
+
+@app.route('/chats/<chat_id>/messages', methods=['GET'])
+def get_chat_messages(chat_id):
+    try:
+        messages = db.collection('chats') \
+            .document(chat_id) \
+            .collection('messages') \
+            .stream()
+
+        message_list = [m.to_dict() | {"id": m.id} for m in messages]
+        return jsonify(message_list), 200
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 400
+
+
+@app.route('/chats/<chat_id>/messages', methods=['POST'])
+def send_message(chat_id):
+    data = request.json
+
+    message = {
+        "text": data.get("text"),
+        "user_id": data.get("user_id"),
+        "username": data.get("username"),
+        "timestamp": firestore.SERVER_TIMESTAMP
+    }
+
+    db.collection('chats') \
+        .document(chat_id) \
+        .collection('messages') \
+        .add(message)
+
+    return jsonify({"message": "Message sent"}), 201
 
 if __name__ == '__main__':
     app.run(debug=True)

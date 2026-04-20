@@ -9,6 +9,8 @@ const PublicTasksPage = () => {
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [joiningTaskId, setJoiningTaskId] = useState(null);
+  const [comments, setComments] = useState({});
+  const [commentText, setCommentText] = useState({});
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -23,7 +25,9 @@ const PublicTasksPage = () => {
       try {
         setLoading(true);
         const response = await axios.get("http://127.0.0.1:5000/public_tasks");
-        setTasks(Array.isArray(response.data) ? response.data : []);
+        const tasksData = Array.isArray(response.data) ? response.data : [];
+        setTasks(tasksData);
+        tasksData.forEach(t => t?.id && getComments(t.id));
       } catch (error) {
         console.error("Error loading public tasks:", error);
         setTasks([]);
@@ -34,6 +38,37 @@ const PublicTasksPage = () => {
 
     fetchPublicTasks();
   }, [uid]);
+
+  const getComments = async (taskId) => {
+    try {
+      console.log("Fetching comments for taskId:", taskId);
+      const res = await axios.get(`http://127.0.0.1:5000/public_tasks/${taskId}/comments`);
+      const data = Array.isArray(res.data) ? res.data : [];
+      console.log("Comments received for", taskId, ":", data);
+      data.sort((a, b) => (a.timestamp?.seconds || 0) - (b.timestamp?.seconds || 0));
+      setComments(prev => ({ ...prev, [taskId]: data }));
+    } catch (e) {
+      console.error('Error fetching comments:', e);
+    }
+  };
+
+  const addComment = async (taskId) => {
+    const text = commentText[taskId] || '';
+    if (!text.trim() || !uid) return;
+
+    try {
+      await axios.post(`http://127.0.0.1:5000/public_tasks/${taskId}/comments`, {
+        text,
+        user_id: uid,
+        username: auth.currentUser?.displayName || 'User'
+      });
+
+      setCommentText(prev => ({ ...prev, [taskId]: '' }));
+      getComments(taskId);
+    } catch (e) {
+      console.error('Error adding comment:', e);
+    }
+  };
 
   const hasUserJoinedTask = (task) => {
     if (!uid) return false;
@@ -94,6 +129,7 @@ const PublicTasksPage = () => {
         ) : (
           <div className="public-tasks-grid">
             {tasks.map((task) => {
+              console.log("Rendering task with id:", task.id);
               const joinedUsers = Array.isArray(task.joinedUsers) ? task.joinedUsers : [];
               const ownedByCurrentUser = uid && task.userId === uid;
               const alreadyJoined = hasUserJoinedTask(task);
@@ -156,6 +192,34 @@ const PublicTasksPage = () => {
                       )}
                     </div>
                   )}
+
+                  <div className="comments-section">
+                    <strong>Comments:</strong>
+                    {comments[task.id]?.length ? (
+                      comments[task.id].map((c, i) => (
+                        <div key={i} className="comment-item">
+                          <strong>{c.username || 'User'}:</strong> {c.text}
+                          <div style={{ fontSize: '12px', color: 'gray' }}>
+                            {c.timestamp
+                              ? new Date(c.timestamp.seconds * 1000).toLocaleString()
+                              : ''}
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <p>No comments yet.</p>
+                    )}
+
+                    <input
+                      type="text"
+                      placeholder="Add a comment"
+                      value={commentText[task.id] || ''}
+                      onChange={(e) =>
+                        setCommentText(prev => ({ ...prev, [task.id]: e.target.value }))
+                      }
+                    />
+                    <button onClick={() => addComment(task.id)}>Add Comment</button>
+                  </div>
                 </article>
               );
             })}

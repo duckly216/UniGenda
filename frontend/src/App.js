@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Routes, Route, useNavigate, Navigate } from "react-router-dom";
+import { Routes, Route, useNavigate, Navigate, Link } from "react-router-dom";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "./firebase";
 import Login from "./components/Login";
@@ -11,8 +11,17 @@ import ProfilePage from "./components/ProfilePage";
 import ModerationPage from "./components/ModerationPage";
 import FriendsPage from "./components/FriendsPage";
 import TaskListPage from "./components/task-components/TaskListPage";
+import PublicTasksPage from "./components/task-components/PublicTasksPage";
 import "./styles/Home.css";
 import ProtectedRoute from "./components/ProtectedRoute";
+import Chat from "./components/Chat";
+
+import { useParams } from "react-router-dom";
+
+const ChatWrapper = () => {
+  const { chatId } = useParams();
+  return <Chat chatId={chatId} />;
+};
 
 function App() {
   const [showLogin, setShowLogin] = useState(false);
@@ -123,6 +132,19 @@ function App() {
           }
         />
         <Route
+          path="/public-tasks"
+          element={
+            <ProtectedRoute user={currentUser} authLoading={authLoading}>
+              <div style={{ display: "flex" }}>
+                <NavBar user={currentUser} />
+                <div style={{ marginLeft: "60px", flex: 1 }}>
+                  <PublicTasksPage />
+                </div>
+              </div>
+            </ProtectedRoute>
+          }
+        />
+        <Route
           path="/moderation"
           element={
             <ProtectedRoute
@@ -158,6 +180,20 @@ function App() {
                 <NavBar user={currentUser} />
                 <div style={{ marginLeft: "60px", flex: 1 }}>
                   <FriendsPage />
+                </div>
+              </div>
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/chat/:chatId"
+          element={
+            <ProtectedRoute user={currentUser} authLoading={authLoading}>
+              <div style={{ display: "flex" }}>
+                <NavBar user={currentUser} />
+                <div style={{ marginLeft: "60px", flex: 1 }}>
+                  <ChatWrapper />
                 </div>
               </div>
             </ProtectedRoute>
