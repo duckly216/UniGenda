@@ -476,5 +476,36 @@ def send_message(chat_id):
 
     return jsonify({"message": "Message sent"}), 201
 
+
+# Find or create chat route
+@app.route('/chats/find_or_create', methods=['POST'])
+def find_or_create_chat():
+    data = request.json
+    members = sorted(data.get('members', []))
+
+    try:
+        chats_ref = db.collection('chats')
+        docs = chats_ref.stream()
+
+        # Check if chat already exists
+        for doc in docs:
+            chat = doc.to_dict()
+            if sorted(chat.get('members', [])) == members:
+                return jsonify({'chat_id': doc.id}), 200
+
+        # Create new chat
+        new_chat = {
+            'members': members,
+            'isGroup': False,
+            'timestamp': firestore.SERVER_TIMESTAMP
+        }
+
+        doc_ref = db.collection('chats').add(new_chat)
+
+        return jsonify({'chat_id': doc_ref[1].id}), 201
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 400
+
 if __name__ == '__main__':
     app.run(debug=True)

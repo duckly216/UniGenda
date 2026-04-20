@@ -252,6 +252,23 @@ const FriendsPage = () => {
                                 </div>
                                 <div className="friends-card-actions">
                                     <button
+                                        className="friends-btn friends-btn-message"
+                                        onClick={async () => {
+                                            try {
+                                                const res = await axios.post(`${BASE_URL}/chats/find_or_create`, {
+                                                    members: [currentUser.uid, friend.uid]
+                                                });
+
+                                                const chatId = res.data.chat_id;
+                                                navigate(`/chat/${chatId}`);
+                                            } catch (err) {
+                                                console.error("Chat creation failed:", err);
+                                            }
+                                        }}
+                                    >
+                                        Message
+                                    </button>
+                                    <button
                                         className="friends-btn friends-btn-view"
                                         onClick={() => navigate(`/profile/${friend.uid}`)}
                                     >
