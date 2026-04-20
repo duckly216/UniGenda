@@ -11,8 +11,9 @@ UniGenda is a simple task management app built for students who want to keep sch
 
 ## Tech Stack
 
-- Backend: Python + Flask + Firebase (Firestore)
-- Frontend: React
+- Backend: Python Flask, Flask-CORS, Firebase Admin SDK
+- Frontend:  React 18, React, Router, Axios, Firebase JS SDK
+- Database: Firebase
 - Architecture: Client/Server
 
 ---
@@ -129,3 +130,33 @@ Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
 - Keep backend and frontend running at the same time during development.
 - Backend entry point: [backend/src/app.py](backend/src/app.py)
 - Frontend entry point: [frontend/src/index.js](frontend/src/index.js)
+
+
+### Dummy data: create and clean public posts
+
+From [backend](backend), you can generate and remove dummy public posts for testing.
+
+Create 50 public posts for a user:
+
+```bash
+python src/dummy_data/seed_public_posts.py --user-id <UserID> --count 50
+```
+
+Preview what would be deleted (recommended first):
+
+```bash
+python src/dummy_data/delete_public_posts.py --user-id <UserID> --dry-run
+```
+
+Delete those public posts:
+
+```bash
+python src/dummy_data/delete_public_posts.py --user-id <UserID>
+```
+
+What these scripts do:
+
+- Seeder writes matching task docs to both Firestore locations used by the app:
+	- `users/{uid}/tasks/{taskId}`
+	- `public_tasks/{taskId}`
+- Cleaner removes the user’s public task docs from both locations.

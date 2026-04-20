@@ -64,6 +64,33 @@
   margin-top: 0;
 }
 
+.dashboard-public-posts-tabs {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.dashboard-public-posts-tab {
+  border: none;
+  background: transparent;
+  padding: 0;
+  margin: 0;
+  font-family: "Oswald", sans-serif;
+  font-size: 1.05rem;
+  color: #6b7280;
+  cursor: pointer;
+}
+
+.dashboard-public-posts-tab.active {
+  color: #111827;
+  font-weight: 600;
+}
+
+.dashboard-public-posts-separator {
+  color: #9ca3af;
+}
+
 /* 3. The Logout Button: Override the general purple button style */
 .logout-button {
     display: block;

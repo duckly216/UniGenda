@@ -646,6 +646,90 @@
 	padding: 0;
 }
 
+.joined-users-block li {
+	margin-bottom: 8px;
+}
+
+.joined-user-entry {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+}
+
+.joined-user-entry span {
+	flex: 1;
+}
+
+.joined-user-actions-menu {
+	position: relative;
+	margin-left: auto;
+}
+
+.joined-user-actions-trigger {
+	list-style: none;
+	border: 1px solid #d1d5db;
+	border-radius: 8px;
+	padding: 4px 10px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	font-size: 1rem;
+	line-height: 1;
+	background: #fff;
+	color: #4b5563;
+	cursor: pointer;
+	user-select: none;
+}
+
+.joined-user-actions-trigger::-webkit-details-marker {
+	display: none;
+}
+
+.joined-user-actions-menu[open] .joined-user-actions-trigger,
+.joined-user-actions-trigger:hover {
+	background: #f3f4f6;
+}
+
+.joined-user-actions-list {
+	position: absolute;
+	right: 0;
+	top: calc(100% + 6px);
+	min-width: 160px;
+	background: #fff;
+	border: 1px solid #e5e7eb;
+	border-radius: 10px;
+	box-shadow: 0 8px 20px rgba(15, 23, 42, 0.12);
+	padding: 6px;
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	z-index: 20;
+}
+
+.joined-user-actions-list button {
+	border: none;
+	border-radius: 8px;
+	padding: 6px 8px;
+	font-family: "Oswald", sans-serif;
+	font-size: 0.8rem;
+	text-align: left;
+	background: #fff;
+	color: #111827;
+	cursor: pointer;
+}
+
+.joined-user-actions-list button:hover {
+	background: #f3f4f6;
+}
+
+.joined-user-actions-list .joined-user-action-danger {
+	color: #b91c1c;
+}
+
+.joined-user-actions-list .joined-user-action-danger:hover {
+	background: #fef2f2;
+}
+
 .task-edit-modal {
 	width: min(560px, 100%);
 	padding: 20px;

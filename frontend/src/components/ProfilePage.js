@@ -218,6 +218,22 @@ const ProfilePage = ({ currentUser }) => {
     setShowReportModal(false);
   };
 
+  const handleBlockUser = () => {
+    if (isOwnProfile) {
+      return;
+    }
+
+    const targetLabel =
+      profile?.displayName || profile?.email || "this user";
+    const confirmed = window.confirm(`Block ${targetLabel}?`);
+    if (!confirmed) {
+      return;
+    }
+
+    setShowActions(false);
+    alert("Blocking users is coming soon.");
+  };
+
   const submitReport = async () => {
     const reporterId = auth.currentUser?.uid;
     const description = reportDescription.trim();
@@ -288,6 +304,17 @@ const ProfilePage = ({ currentUser }) => {
                 {isOwnProfile && (
                   <button type="button" onClick={handleLogout}>
                     Logout
+                <button type="button">Message User (WIP)</button>
+                <button type="button" onClick={openReportModal}>
+                  Report User
+                </button>
+                {!isOwnProfile && (
+                  <button
+                    type="button"
+                    className="profile-actions-danger"
+                    onClick={handleBlockUser}
+                  >
+                    Block User
                   </button>
                 )}
               </div>

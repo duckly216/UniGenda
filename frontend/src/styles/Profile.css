@@ -72,6 +72,14 @@
   background: #f3f4f6;
 }
 
+.profile-actions-menu .profile-actions-danger {
+  color: #b91c1c;
+}
+
+.profile-actions-menu .profile-actions-danger:hover {
+  background: #fef2f2;
+}
+
 .profile-details {
   display: grid;
   gap: 0.9rem;
