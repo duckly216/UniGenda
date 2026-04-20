@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import axios from "axios";
-import { useParams } from "react-router-dom";
-import { updateEmail, updateProfile } from "firebase/auth";
+import { useNavigate, useParams } from "react-router-dom";
+import { updateEmail, updateProfile, signOut } from "firebase/auth";
 import { auth } from "../firebase";
 import "../styles/Profile.css";
 
@@ -28,8 +28,9 @@ const formatCreatedAt = (value) => {
   return "Unknown";
 };
 
-const ProfilePage = () => {
+const ProfilePage = ({ currentUser }) => {
   const { userId } = useParams();
+  const navigate = useNavigate();
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -50,6 +51,8 @@ const ProfilePage = () => {
     phone: "",
     school: "",
   });
+
+  const activeUserId = currentUser?.uid || auth.currentUser?.uid;
 
   useEffect(() => {
     if (!userId) {
@@ -198,6 +201,15 @@ const ProfilePage = () => {
     setShowReportModal(true);
   };
 
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      navigate("/login");
+    } catch (err) {
+      console.error("Error logging out:", err);
+    }
+  };
+
   const closeReportModal = () => {
     if (submittingReport) {
       return;
@@ -281,6 +293,17 @@ const ProfilePage = () => {
                     Edit Profile
                   </button>
                 )}
+                {!isOwnProfile && (
+                  <button type="button">Message User (WIP)</button>
+                )}
+                {!isOwnProfile && (
+                  <button type="button" onClick={openReportModal}>
+                    Report User
+                  </button>
+                )}
+                {isOwnProfile && (
+                  <button type="button" onClick={handleLogout}>
+                    Logout
                 <button type="button">Message User (WIP)</button>
                 <button type="button" onClick={openReportModal}>
                   Report User
@@ -320,6 +343,18 @@ const ProfilePage = () => {
               <span className="profile-label">School</span>
               <span>{profile.school || "Not set"}</span>
             </div>
+          </div>
+        )}
+
+        {!loading && !error && isOwnProfile && (
+          <div className="profile-logout-section">
+            <button
+              type="button"
+              className="profile-logout-button"
+              onClick={handleLogout}
+            >
+              Logout
+            </button>
           </div>
         )}
       </div>
@@ -395,58 +430,94 @@ const ProfilePage = () => {
             </p>
 
             <div className="edit-profile-grid">
-              <input
-                className="edit-profile-input"
-                value={editForm.firstName}
-                onChange={(event) =>
-                  handleEditChange("firstName", event.target.value)
-                }
-                placeholder="First name"
-              />
-              <input
-                className="edit-profile-input"
-                value={editForm.lastName}
-                onChange={(event) =>
-                  handleEditChange("lastName", event.target.value)
-                }
-                placeholder="Last name"
-              />
-              <input
-                className="edit-profile-input"
-                value={editForm.displayName}
-                onChange={(event) =>
-                  handleEditChange("displayName", event.target.value)
-                }
-                placeholder="Display name"
-              />
-              <input
-                className="edit-profile-input"
-                type="email"
-                value={editForm.email}
-                onChange={(event) =>
-                  handleEditChange("email", event.target.value)
-                }
-                placeholder="Email"
-              />
-              <input
-                className="edit-profile-input"
-                value={editForm.phone}
-                onChange={(event) =>
-                  handleEditChange("phone", event.target.value)
-                }
-                placeholder="Phone"
-              />
-              <select
-                className="edit-profile-input"
-                value={editForm.school}
-                onChange={(event) =>
-                  handleEditChange("school", event.target.value)
-                }
-              >
-                <option value="">Select school</option>
-                <option value="SF">Santa Fe College</option>
-                <option value="UF">University of Florida</option>
-              </select>
+              <div className="edit-profile-field">
+                <label className="edit-profile-label" htmlFor="first-name">
+                  First name
+                </label>
+                <input
+                  id="first-name"
+                  className="edit-profile-input"
+                  value={editForm.firstName}
+                  onChange={(event) =>
+                    handleEditChange("firstName", event.target.value)
+                  }
+                  placeholder="First name"
+                />
+              </div>
+              <div className="edit-profile-field">
+                <label className="edit-profile-label" htmlFor="last-name">
+                  Last name
+                </label>
+                <input
+                  id="last-name"
+                  className="edit-profile-input"
+                  value={editForm.lastName}
+                  onChange={(event) =>
+                    handleEditChange("lastName", event.target.value)
+                  }
+                  placeholder="Last name"
+                />
+              </div>
+              <div className="edit-profile-field">
+                <label className="edit-profile-label" htmlFor="display-name">
+                  Display name
+                </label>
+                <input
+                  id="display-name"
+                  className="edit-profile-input"
+                  value={editForm.displayName}
+                  onChange={(event) =>
+                    handleEditChange("displayName", event.target.value)
+                  }
+                  placeholder="Display name"
+                />
+              </div>
+              <div className="edit-profile-field">
+                <label className="edit-profile-label" htmlFor="email">
+                  Email
+                </label>
+                <input
+                  id="email"
+                  className="edit-profile-input"
+                  type="email"
+                  value={editForm.email}
+                  onChange={(event) =>
+                    handleEditChange("email", event.target.value)
+                  }
+                  placeholder="Email"
+                />
+              </div>
+              <div className="edit-profile-field">
+                <label className="edit-profile-label" htmlFor="phone">
+                  Phone Number
+                </label>
+                <input
+                  id="phone"
+                  className="edit-profile-input"
+                  value={editForm.phone}
+                  onChange={(event) =>
+                    handleEditChange("phone", event.target.value)
+                  }
+                  placeholder="Phone"
+                />
+              </div>
+              <div className="edit-profile-field">
+                <label className="edit-profile-label" htmlFor="school">
+                  School
+                </label>
+                <select
+                  id="school"
+                  className="edit-profile-input"
+                  value={editForm.school}
+                  onChange={(event) =>
+                    handleEditChange("school", event.target.value)
+                  }
+                >
+                  <option value="">Select school</option>
+                  <option value="SF">Santa Fe College</option>
+                  <option value="UF">University of Florida</option>
+                </select>
+              </div>
             </div>
 
             {editError && <p className="profile-error">{editError}</p>}
