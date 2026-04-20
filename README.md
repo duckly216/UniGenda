@@ -139,19 +139,19 @@ From [backend](backend), you can generate and remove dummy public posts for test
 Create 50 public posts for a user:
 
 ```bash
-python src/dummy_data/seed_public_posts.py --user-id TNMq53qHLgMt82ATXcYKw2zzEiv2 --count 50
+python src/dummy_data/seed_public_posts.py --user-id <UserID> --count 50
 ```
 
 Preview what would be deleted (recommended first):
 
 ```bash
-python src/dummy_data/delete_public_posts.py --user-id TNMq53qHLgMt82ATXcYKw2zzEiv2 --dry-run
+python src/dummy_data/delete_public_posts.py --user-id <UserID> --dry-run
 ```
 
 Delete those public posts:
 
 ```bash
-python src/dummy_data/delete_public_posts.py --user-id TNMq53qHLgMt82ATXcYKw2zzEiv2
+python src/dummy_data/delete_public_posts.py --user-id <UserID>
 ```
 
 What these scripts do:
