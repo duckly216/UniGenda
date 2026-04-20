@@ -5,7 +5,7 @@ import { onAuthStateChanged, signOut } from "firebase/auth"; //
 import { useNavigate } from "react-router-dom";
 import "../styles/Dashboard.css";
 import TaskForm from './task-components/TaskForm';
-import TaskList from './TaskList';
+import TaskList from './task-components/TaskList';
 
 
 const Dashboard = () => {
@@ -13,6 +13,7 @@ const Dashboard = () => {
     const [authUser, setAuthUser] = useState(null);
     const navigate = useNavigate();
     const [refresh, setRefresh] = useState(0);
+    const [showCreateTaskPopup, setShowCreateTaskPopup] = useState(false);
 
     useEffect(()=> {
         const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -45,6 +46,7 @@ const Dashboard = () => {
     };
     const handleTaskAdded = () => {
         setRefresh(prev => prev + 1); // Increment to trigger useEffect in TaskList
+        setShowCreateTaskPopup(false);
     };
 
     const welcomeName =
@@ -52,7 +54,7 @@ const Dashboard = () => {
         userData?.firstName ||
         authUser?.displayName ||
         authUser?.email?.split('@')[0] ||
-        "Student (Name not loaded)";
+        "Loading...";
 
     const affiliationLabel =
         userData?.school === "UF"
@@ -66,15 +68,44 @@ const Dashboard = () => {
             <div className="dashboard-layout">   
                 {/* 3. Display the unique profile data */}
                 <h1>Welcome, {welcomeName}!</h1>
-                <p>Affiliation: {affiliationLabel || "School not loaded"}</p>
-                {/* Input Section */}
-                <TaskForm onTaskAdded={handleTaskAdded} />
+                <p>Affiliation: {affiliationLabel || "Loading..."}</p>
                 
-                <hr className="section-divider" />
-                
-                {/* Display Section */}
+                {/* Tasks Display Section */}
                 <h3>Tasks</h3>
-                <TaskList refreshTrigger={refresh} />
+                    <section className="tasks-page-section">
+                        <button
+                            type="button"
+                            className="create-task-trigger"
+                            onClick={() => setShowCreateTaskPopup(true)}
+                        >
+                            Create New Task?
+                        </button>
+                    </section>
+
+                    <TaskList refreshTrigger={refresh} />
+
+                    {showCreateTaskPopup && (
+                        <div
+                            className="tasks-modal-overlay"
+                            onClick={() => setShowCreateTaskPopup(false)}
+                        >
+                            <div
+                                className="tasks-modal-content"
+                                onClick={(e) => e.stopPropagation()}
+                            >
+                                <button
+                                    type="button"
+                                    className="tasks-modal-close"
+                                    onClick={() => setShowCreateTaskPopup(false)}
+                                >
+                                    ✕
+                                </button>
+                                <TaskForm onTaskAdded={handleTaskAdded} />
+                            </div>
+                        </div>
+                    )}
+                <hr className="section-divider" />
+                <h3>Public Tasks</h3>
                 
                 <hr className="section-divider" />
                 
