@@ -304,10 +304,8 @@ const ProfilePage = ({ currentUser }) => {
                 {isOwnProfile && (
                   <button type="button" onClick={handleLogout}>
                     Logout
-                <button type="button">Message User (WIP)</button>
-                <button type="button" onClick={openReportModal}>
-                  Report User
-                </button>
+                  </button>
+                )}
                 {!isOwnProfile && (
                   <button
                     type="button"
