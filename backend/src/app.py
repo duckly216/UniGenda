@@ -13,6 +13,7 @@ app = Flask(__name__)
 CORS(app)
 public_tasks = db.collection('public_tasks')
 task_tag_catalog = db.collection('task_tag_catalog')
+lfg_posts = db.collection('lfg_posts')
 
 
 def parse_payload():
@@ -112,6 +113,24 @@ def parse_iso_datetime(value):
         return parsed
     except ValueError:
         return None
+
+
+def serialize_firestore_value(value):
+    if isinstance(value, dict):
+        return {key: serialize_firestore_value(nested) for key, nested in value.items()}
+    if isinstance(value, list):
+        return [serialize_firestore_value(item) for item in value]
+    if hasattr(value, "isoformat"):
+        return value.isoformat()
+    return value
+
+
+def serialize_firestore_document(snapshot):
+    if not getattr(snapshot, "exists", False):
+        return None
+
+    data = snapshot.to_dict() or {}
+    return serialize_firestore_value(data) | {"id": snapshot.id}
 
 
 def is_public_task_expired(task_data):
@@ -1071,6 +1090,114 @@ def remove_friend(uid, friend_uid):
     return jsonify({"message": "Friend removed"}), 200
 
 ## -- --------------- -- ##
+
+## -- Looking For Group / Chat -- ##
+
+
+@app.route('/lfg', methods=['GET'])
+def get_lfg_posts():
+    try:
+        posts = [
+            serialize_firestore_document(doc)
+            for doc in lfg_posts.stream()
+        ]
+        posts = [post for post in posts if post is not None]
+        posts.sort(key=lambda post: post.get("createdAt") or "", reverse=True)
+        return jsonify(posts), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 400
+
+
+@app.route('/lfg', methods=['POST'])
+def create_lfg_post():
+    data = parse_payload()
+
+    if not isinstance(data, dict):
+        return jsonify({"error": "Invalid or missing request body."}), 400
+
+    title = str(data.get("title") or "").strip()
+    description = str(data.get("description") or "").strip()
+    username = str(data.get("username") or "").strip()
+
+    if not title:
+        return jsonify({"error": "title is required"}), 400
+    if not description:
+        return jsonify({"error": "description is required"}), 400
+    if not username:
+        return jsonify({"error": "username is required"}), 400
+
+    post_ref = lfg_posts.document()
+    timestamp = datetime.now(timezone.utc).isoformat()
+    chat_id = post_ref.id
+    post_data = {
+        "title": title,
+        "description": description,
+        "username": username,
+        "chatId": chat_id,
+        "createdAt": timestamp,
+        "updatedAt": timestamp,
+    }
+
+    post_ref.set(post_data)
+    db.collection('chats').document(chat_id).set({
+        "title": title,
+        "source": "lfg",
+        "createdAt": timestamp,
+        "updatedAt": timestamp,
+    }, merge=True)
+
+    return jsonify(post_data | {"id": post_ref.id}), 201
+
+
+@app.route('/chats/<chat_id>/messages', methods=['GET'])
+def get_chat_messages(chat_id):
+    try:
+        message_docs = db.collection('chats').document(chat_id).collection('messages').stream()
+        messages = [
+            serialize_firestore_document(doc)
+            for doc in message_docs
+        ]
+        messages = [message for message in messages if message is not None]
+        messages.sort(key=lambda message: message.get("timestamp") or "")
+        return jsonify(messages), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 400
+
+
+@app.route('/chats/<chat_id>/messages', methods=['POST'])
+def create_chat_message(chat_id):
+    data = parse_payload()
+
+    if not isinstance(data, dict):
+        return jsonify({"error": "Invalid or missing request body."}), 400
+
+    text = str(data.get("text") or "").strip()
+    user_id = str(data.get("user_id") or "").strip()
+    username = str(data.get("username") or "User").strip() or "User"
+
+    if not text:
+        return jsonify({"error": "text is required"}), 400
+    if not user_id:
+        return jsonify({"error": "user_id is required"}), 400
+
+    timestamp = datetime.now(timezone.utc).isoformat()
+    message_ref = db.collection('chats').document(chat_id).collection('messages').document()
+    message_data = {
+        "text": text,
+        "user_id": user_id,
+        "username": username,
+        "timestamp": timestamp,
+    }
+
+    message_ref.set(message_data)
+    db.collection('chats').document(chat_id).set({
+        "updatedAt": timestamp,
+    }, merge=True)
+
+    return jsonify(message_data | {"id": message_ref.id}), 201
+
+
+## -- ---------------------- -- ##
 
 if __name__ == '__main__':
     app.run(debug=True)

@@ -1,0 +1,216 @@
+.lfg-page {
+  min-height: 100vh;
+  padding: 32px;
+  font-family: "Oswald", sans-serif;
+  background:
+    radial-gradient(circle at top left, rgba(255, 214, 165, 0.45), transparent 28%),
+    linear-gradient(180deg, #f8fbff 0%, #eef4f6 100%);
+  color: #17313a;
+}
+
+.lfg-hero {
+  margin-bottom: 24px;
+  padding: 28px 32px;
+  border-radius: 24px;
+  background: linear-gradient(135deg, #123c4a 0%, #1c5969 100%);
+  color: #f5fbfd;
+  box-shadow: 0 20px 50px rgba(18, 60, 74, 0.18);
+}
+
+.lfg-eyebrow {
+  margin: 0 0 8px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #b7edf7;
+}
+
+.lfg-hero h1 {
+  margin: 0;
+  font-size: clamp(2rem, 4vw, 3rem);
+}
+
+.lfg-subtitle {
+  max-width: 720px;
+  margin: 12px 0 0;
+  color: rgba(245, 251, 253, 0.85);
+  line-height: 1.6;
+}
+
+.lfg-layout {
+  display: grid;
+  grid-template-columns: minmax(280px, 360px) minmax(0, 1fr);
+  gap: 24px;
+  align-items: start;
+}
+
+.lfg-panel {
+  border: 1px solid rgba(23, 49, 58, 0.08);
+  border-radius: 24px;
+  padding: 24px;
+  background: rgba(255, 255, 255, 0.88);
+  box-shadow: 0 18px 40px rgba(20, 49, 58, 0.08);
+  backdrop-filter: blur(12px);
+}
+
+.lfg-panel-form h2,
+.lfg-panel h2 {
+  margin-top: 0;
+  margin-bottom: 20px;
+}
+
+.lfg-form {
+  display: grid;
+  gap: 16px;
+}
+
+.lfg-field {
+  display: grid;
+  gap: 8px;
+}
+
+.lfg-field span {
+  font-weight: 600;
+  color: #264a56;
+}
+
+.lfg-field input,
+.lfg-field textarea {
+  width: 100%;
+  border: 1px solid rgba(38, 74, 86, 0.15);
+  border-radius: 16px;
+  padding: 14px 16px;
+  font: inherit;
+  color: #17313a;
+  background: #f8fbfd;
+  box-sizing: border-box;
+}
+
+.lfg-field textarea {
+  min-height: 140px;
+  resize: vertical;
+}
+
+.lfg-primary-btn,
+.lfg-secondary-btn {
+  border: none;
+  border-radius: 999px;
+  padding: 12px 18px;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+}
+
+.lfg-primary-btn {
+  background: linear-gradient(135deg, #f38b4a 0%, #d95d39 100%);
+  color: #fffaf5;
+  box-shadow: 0 12px 24px rgba(217, 93, 57, 0.24);
+}
+
+.lfg-secondary-btn {
+  background: #e7f1f4;
+  color: #1c5969;
+}
+
+.lfg-primary-btn:hover,
+.lfg-secondary-btn:hover {
+  transform: translateY(-1px);
+}
+
+.lfg-primary-btn:disabled,
+.lfg-secondary-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.7;
+  transform: none;
+}
+
+.lfg-panel-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.lfg-posts {
+  display: grid;
+  gap: 16px;
+}
+
+.lfg-post {
+  border: 1px solid rgba(38, 74, 86, 0.12);
+  border-radius: 20px;
+  padding: 20px;
+  background: linear-gradient(180deg, #ffffff 0%, #f5fafb 100%);
+}
+
+.lfg-post-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.lfg-post-header h3 {
+  margin: 0 0 6px;
+  font-size: 1.15rem;
+}
+
+.lfg-post-meta,
+.lfg-post-date {
+  margin: 0;
+  color: #5b7881;
+  font-size: 0.92rem;
+}
+
+.lfg-post-description {
+  margin: 16px 0;
+  line-height: 1.6;
+}
+
+.lfg-post-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.lfg-empty {
+  margin: 0;
+  padding: 32px 16px;
+  border-radius: 16px;
+  text-align: center;
+  color: #5b7881;
+  background: #f5fafb;
+}
+
+@media (max-width: 960px) {
+  .lfg-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .lfg-page {
+    padding: 20px;
+  }
+
+  .lfg-hero,
+  .lfg-panel {
+    padding: 20px;
+  }
+
+  .lfg-panel-header,
+  .lfg-post-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .lfg-post-actions {
+    justify-content: stretch;
+  }
+
+  .lfg-post-actions .lfg-primary-btn {
+    width: 100%;
+  }
+}

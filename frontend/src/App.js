@@ -10,6 +10,8 @@ import Calendar from "./components/Calendar";
 import ProfilePage from "./components/ProfilePage";
 import ModerationPage from "./components/ModerationPage";
 import FriendsPage from "./components/FriendsPage";
+import LookingForGroup from "./components/LookingForGroup";
+import ChatPage from "./components/ChatPage";
 import TaskListPage from "./components/task-components/TaskListPage";
 import PublicTasksPage from "./components/task-components/PublicTasksPage";
 import "./styles/Home.css";
@@ -172,6 +174,32 @@ function App() {
                 <NavBar user={currentUser} />
                 <div style={{ marginLeft: "60px", flex: 1 }}>
                   <FriendsPage />
+                </div>
+              </div>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/looking-for-group"
+          element={
+            <ProtectedRoute user={currentUser} authLoading={authLoading}>
+              <div style={{ display: "flex" }}>
+                <NavBar user={currentUser} />
+                <div style={{ marginLeft: "60px", flex: 1 }}>
+                  <LookingForGroup />
+                </div>
+              </div>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/chat/:chatId"
+          element={
+            <ProtectedRoute user={currentUser} authLoading={authLoading}>
+              <div style={{ display: "flex" }}>
+                <NavBar user={currentUser} />
+                <div style={{ marginLeft: "60px", flex: 1 }}>
+                  <ChatPage />
                 </div>
               </div>
             </ProtectedRoute>

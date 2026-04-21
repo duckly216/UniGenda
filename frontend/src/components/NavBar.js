@@ -11,6 +11,12 @@ const NAV_ITEMS = [
   { icon: "📅", label: "Calendar", path: "/calendar", group: "main" },
   { icon: "👥", label: "Friends", path: "/friends", group: "main" },
   {
+    icon: "🤝",
+    label: "Groups",
+    path: "/looking-for-group",
+    group: "main",
+  },
+  {
     icon: "🛡️",
     label: "Moderation",
     path: "/moderation",
