@@ -1,4 +1,5 @@
 import json
+import hashlib
 import re
 from datetime import datetime, timedelta, timezone
 from functools import wraps
@@ -13,6 +14,7 @@ app = Flask(__name__)
 CORS(app)
 public_tasks = db.collection('public_tasks')
 task_tag_catalog = db.collection('task_tag_catalog')
+lfg_posts = db.collection('lfg_posts')
 
 
 def parse_payload():
@@ -78,6 +80,38 @@ def normalize_people_needed(raw_people_needed):
     return people_needed, None
 
 
+def normalize_member_ids(raw_members):
+    if not isinstance(raw_members, list):
+        return []
+
+    normalized_members = []
+    seen_members = set()
+
+    for member in raw_members:
+        member_id = str(member or "").strip()
+        if not member_id or member_id in seen_members:
+            continue
+
+        seen_members.add(member_id)
+        normalized_members.append(member_id)
+
+    return normalized_members
+
+
+def build_direct_chat_member_key(member_ids):
+    normalized_members = sorted(normalize_member_ids(member_ids))
+    return "__".join(normalized_members)
+
+
+def build_direct_chat_id(member_ids):
+    member_key = build_direct_chat_member_key(member_ids)
+    if not member_key:
+        return None
+
+    digest = hashlib.sha256(member_key.encode("utf-8")).hexdigest()
+    return f"dm_{digest[:32]}"
+
+
 def build_joined_user(uid):
     profile = get_user_public_profile(uid) or {}
     return {
@@ -112,6 +146,24 @@ def parse_iso_datetime(value):
         return parsed
     except ValueError:
         return None
+
+
+def serialize_firestore_value(value):
+    if isinstance(value, dict):
+        return {key: serialize_firestore_value(nested) for key, nested in value.items()}
+    if isinstance(value, list):
+        return [serialize_firestore_value(item) for item in value]
+    if hasattr(value, "isoformat"):
+        return value.isoformat()
+    return value
+
+
+def serialize_firestore_document(snapshot):
+    if not getattr(snapshot, "exists", False):
+        return None
+
+    data = snapshot.to_dict() or {}
+    return serialize_firestore_value(data) | {"id": snapshot.id}
 
 
 def is_public_task_expired(task_data):
@@ -167,6 +219,30 @@ def get_user_public_profile(uid):
     }
 
 
+def are_friends(uid, other_uid):
+    if not uid or not other_uid or uid == other_uid:
+        return False
+
+    user_friend_doc = (
+        db.collection('users')
+        .document(uid)
+        .collection('friends')
+        .document(other_uid)
+        .get()
+    )
+    if not getattr(user_friend_doc, "exists", False):
+        return False
+
+    other_friend_doc = (
+        db.collection('users')
+        .document(other_uid)
+        .collection('friends')
+        .document(uid)
+        .get()
+    )
+    return getattr(other_friend_doc, "exists", False)
+
+
 def delete_user_documents(uid):
     if not uid:
         return
@@ -186,6 +262,91 @@ def get_authenticated_uid():
     if isinstance(current_user, dict):
         return current_user.get("uid")
     return None
+
+
+def is_direct_chat(chat_data):
+    if not isinstance(chat_data, dict):
+        return False
+
+    chat_type = str(chat_data.get("type") or "").strip().lower()
+    if chat_type == "direct":
+        return True
+
+    member_ids = normalize_member_ids(chat_data.get("members") or [])
+    source = str(chat_data.get("source") or "").strip().lower()
+    return len(member_ids) == 2 and source in ("", "direct")
+
+
+def build_chat_display_title(chat_data, viewer_uid=None):
+    if not isinstance(chat_data, dict):
+        return "Conversation"
+
+    if is_direct_chat(chat_data):
+        member_ids = normalize_member_ids(chat_data.get("members") or [])
+        other_member_ids = [member_id for member_id in member_ids if member_id != viewer_uid]
+        title_member_ids = other_member_ids or member_ids
+
+        display_names = []
+        for member_id in title_member_ids:
+            profile = get_user_public_profile(member_id) or {}
+            display_name = (
+                profile.get("displayName")
+                or profile.get("email")
+                or member_id
+            )
+            display_name = str(display_name or "").strip()
+            if display_name:
+                display_names.append(display_name)
+
+        if display_names:
+            return ", ".join(display_names)
+
+    explicit_title = str(chat_data.get("title") or "").strip()
+    return explicit_title or "Conversation"
+
+
+def serialize_chat_document(chat_id, chat_data, viewer_uid=None):
+    serialized_chat = serialize_firestore_value(chat_data or {})
+    return serialized_chat | {
+        "id": chat_id,
+        "displayTitle": build_chat_display_title(serialized_chat, viewer_uid),
+    }
+
+
+def get_current_user_display_name():
+    uid = get_authenticated_uid()
+    profile = get_user_public_profile(uid) or {}
+    current_user = getattr(g, "current_user", {}) or {}
+
+    display_name = (
+        profile.get("displayName")
+        or current_user.get("name")
+        or current_user.get("email")
+        or "User"
+    )
+    return str(display_name or "").strip() or "User"
+
+
+def get_accessible_chat(chat_id):
+    chat_ref = db.collection('chats').document(chat_id)
+    chat_snapshot = chat_ref.get()
+
+    if not getattr(chat_snapshot, "exists", False):
+        return None, None, (jsonify({"error": "Chat not found"}), 404)
+
+    chat_data = chat_snapshot.to_dict() or {}
+    authenticated_uid = get_authenticated_uid()
+
+    if is_direct_chat(chat_data):
+        member_ids = normalize_member_ids(chat_data.get("members") or [])
+        if authenticated_uid not in member_ids:
+            return None, None, (jsonify({"error": "Forbidden"}), 403)
+
+        other_member_ids = [member_id for member_id in member_ids if member_id != authenticated_uid]
+        if len(other_member_ids) != 1 or not are_friends(authenticated_uid, other_member_ids[0]):
+            return None, None, (jsonify({"error": "Direct messages are only available between friends"}), 403)
+
+    return chat_ref, chat_data, None
 
 
 def require_auth(view_func):
@@ -1071,6 +1232,187 @@ def remove_friend(uid, friend_uid):
     return jsonify({"message": "Friend removed"}), 200
 
 ## -- --------------- -- ##
+
+## -- Looking For Group / Chat -- ##
+
+
+@app.route('/lfg', methods=['GET'])
+def get_lfg_posts():
+    try:
+        posts = [
+            serialize_firestore_document(doc)
+            for doc in lfg_posts.stream()
+        ]
+        posts = [post for post in posts if post is not None]
+        posts.sort(key=lambda post: post.get("createdAt") or "", reverse=True)
+        return jsonify(posts), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 400
+
+
+@app.route('/lfg', methods=['POST'])
+def create_lfg_post():
+    data = parse_payload()
+
+    if not isinstance(data, dict):
+        return jsonify({"error": "Invalid or missing request body."}), 400
+
+    title = str(data.get("title") or "").strip()
+    description = str(data.get("description") or "").strip()
+    username = str(data.get("username") or "").strip()
+
+    if not title:
+        return jsonify({"error": "title is required"}), 400
+    if not description:
+        return jsonify({"error": "description is required"}), 400
+    if not username:
+        return jsonify({"error": "username is required"}), 400
+
+    post_ref = lfg_posts.document()
+    timestamp = datetime.now(timezone.utc).isoformat()
+    chat_id = post_ref.id
+    post_data = {
+        "title": title,
+        "description": description,
+        "username": username,
+        "chatId": chat_id,
+        "createdAt": timestamp,
+        "updatedAt": timestamp,
+    }
+
+    post_ref.set(post_data)
+    db.collection('chats').document(chat_id).set({
+        "title": title,
+        "type": "group",
+        "source": "lfg",
+        "createdAt": timestamp,
+        "updatedAt": timestamp,
+    }, merge=True)
+
+    return jsonify(post_data | {"id": post_ref.id}), 201
+
+
+@app.route('/chats/find_or_create', methods=['POST'])
+@require_auth
+def find_or_create_chat():
+    data = parse_payload()
+
+    if not isinstance(data, dict):
+        return jsonify({"error": "Invalid or missing request body."}), 400
+
+    members = normalize_member_ids(data.get("members"))
+    if len(members) != 2:
+        return jsonify({"error": "members must contain exactly two unique user ids"}), 400
+
+    authenticated_uid = get_authenticated_uid()
+    if authenticated_uid not in members:
+        return jsonify({"error": "Forbidden"}), 403
+
+    other_member_ids = [member_id for member_id in members if member_id != authenticated_uid]
+    if len(other_member_ids) != 1 or not are_friends(authenticated_uid, other_member_ids[0]):
+        return jsonify({"error": "Direct messages are only available between friends"}), 403
+
+    chat_id = build_direct_chat_id(members)
+    member_key = build_direct_chat_member_key(members)
+    chat_ref = db.collection('chats').document(chat_id)
+    chat_snapshot = chat_ref.get()
+
+    if getattr(chat_snapshot, "exists", False):
+        chat_data = chat_snapshot.to_dict() or {}
+        return jsonify({
+            "chat_id": chat_id,
+            "created": False,
+            "chat": serialize_chat_document(chat_id, chat_data, authenticated_uid),
+        }), 200
+
+    timestamp = datetime.now(timezone.utc).isoformat()
+    chat_data = {
+        "type": "direct",
+        "source": "direct",
+        "members": sorted(members),
+        "memberKey": member_key,
+        "title": build_chat_display_title({"type": "direct", "members": members}),
+        "createdAt": timestamp,
+        "updatedAt": timestamp,
+    }
+    chat_ref.set(chat_data)
+
+    return jsonify({
+        "chat_id": chat_id,
+        "created": True,
+        "chat": serialize_chat_document(chat_id, chat_data, authenticated_uid),
+    }), 201
+
+
+@app.route('/chats/<chat_id>', methods=['GET'])
+@require_auth
+def get_chat(chat_id):
+    chat_ref, chat_data, error = get_accessible_chat(chat_id)
+    if error:
+        return error
+
+    return jsonify(serialize_chat_document(chat_ref.id, chat_data, get_authenticated_uid())), 200
+
+
+@app.route('/chats/<chat_id>/messages', methods=['GET'])
+@require_auth
+def get_chat_messages(chat_id):
+    chat_ref, _, error = get_accessible_chat(chat_id)
+    if error:
+        return error
+
+    try:
+        message_docs = chat_ref.collection('messages').stream()
+        messages = [
+            serialize_firestore_document(doc)
+            for doc in message_docs
+        ]
+        messages = [message for message in messages if message is not None]
+        messages.sort(key=lambda message: message.get("timestamp") or "")
+        return jsonify(messages), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 400
+
+
+@app.route('/chats/<chat_id>/messages', methods=['POST'])
+@require_auth
+def create_chat_message(chat_id):
+    data = parse_payload()
+
+    if not isinstance(data, dict):
+        return jsonify({"error": "Invalid or missing request body."}), 400
+
+    chat_ref, _, error = get_accessible_chat(chat_id)
+    if error:
+        return error
+
+    text = str(data.get("text") or "").strip()
+    user_id = get_authenticated_uid()
+    username = get_current_user_display_name()
+
+    if not text:
+        return jsonify({"error": "text is required"}), 400
+    if not user_id:
+        return jsonify({"error": "user_id is required"}), 400
+
+    timestamp = datetime.now(timezone.utc).isoformat()
+    message_ref = chat_ref.collection('messages').document()
+    message_data = {
+        "text": text,
+        "user_id": user_id,
+        "username": username,
+        "timestamp": timestamp,
+    }
+
+    message_ref.set(message_data)
+    chat_ref.set({
+        "updatedAt": timestamp,
+    }, merge=True)
+
+    return jsonify(message_data | {"id": message_ref.id}), 201
+
+
+## -- ---------------------- -- ##
 
 if __name__ == '__main__':
     app.run(debug=True)

@@ -4,6 +4,7 @@ import { auth } from "../../firebase";
 import { useNavigate } from "react-router-dom";
 import { onAuthStateChanged } from "firebase/auth";
 import LoadingPage from "../LoadingPage";
+import { findOrCreateDirectChat } from "../../utils/chat";
 import "../../styles/TaskRelatedStyles.css";
 
 const POSTS_PER_PAGE = 10;
@@ -227,13 +228,27 @@ const PublicTasksPage = () => {
     navigate(`/profile/${joinedUser.uid}`);
   };
 
-  const handleMessageJoinedUser = (joinedUser) => {
+  const handleMessageJoinedUser = async (joinedUser) => {
     if (!joinedUser?.uid) {
       alert("This user cannot be messaged right now.");
       return;
     }
 
-    alert("Messaging is currently a work in progress.");
+    try {
+      const { chatId, title } = await findOrCreateDirectChat(joinedUser.uid);
+      if (!chatId) {
+        throw new Error("Could not open the conversation.");
+      }
+
+      navigate(`/chat/${chatId}`, {
+        state: {
+          title,
+        },
+      });
+    } catch (error) {
+      console.error("Error opening direct chat:", error);
+      alert(error.message || "Could not open the conversation right now.");
+    }
   };
 
   const handleReportJoinedUser = async (joinedUser) => {
