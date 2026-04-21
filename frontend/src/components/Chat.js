@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "../firebase";
+import { getChatAuthHeaders } from "../utils/chat";
 import "../styles/Chat.css";
 
 const BASE_URL = "http://127.0.0.1:5000";
@@ -18,7 +19,7 @@ const formatTime = (value) => {
 
 const Chat = ({ chatId, title }) => {
   const [uid, setUid] = useState(null);
-  const [displayName, setDisplayName] = useState("User");
+  const [chatTitle, setChatTitle] = useState(title || "Conversation");
   const [messages, setMessages] = useState([]);
   const [text, setText] = useState("");
   const [loading, setLoading] = useState(true);
@@ -27,20 +28,60 @@ const Chat = ({ chatId, title }) => {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       setUid(user?.uid || null);
-      setDisplayName(user?.displayName || "User");
     });
 
     return () => unsubscribe();
   }, []);
 
   useEffect(() => {
-    if (!chatId) return undefined;
+    setChatTitle(title || "Conversation");
+  }, [title]);
+
+  useEffect(() => {
+    if (!chatId || !uid) return undefined;
 
     let isMounted = true;
 
+    const getChat = async () => {
+      try {
+        const headers = await getChatAuthHeaders();
+        const response = await fetch(`${BASE_URL}/chats/${chatId}`, {
+          headers,
+        });
+
+        if (!response.ok) {
+          throw new Error(`Failed to load chat (${response.status})`);
+        }
+
+        const data = await response.json();
+        if (!isMounted) return;
+
+        setChatTitle(data?.displayTitle || data?.title || title || "Conversation");
+      } catch (error) {
+        console.error("Error loading chat details:", error);
+      }
+    };
+
+    getChat();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [chatId, title, uid]);
+
+  useEffect(() => {
+    if (!chatId) return undefined;
+    if (!uid) return undefined;
+
+    let isMounted = true;
+    setLoading(true);
+
     const getMessages = async () => {
       try {
-        const response = await fetch(`${BASE_URL}/chats/${chatId}/messages`);
+        const headers = await getChatAuthHeaders();
+        const response = await fetch(`${BASE_URL}/chats/${chatId}/messages`, {
+          headers,
+        });
         if (!response.ok) {
           throw new Error(`Failed to load messages (${response.status})`);
         }
@@ -66,7 +107,7 @@ const Chat = ({ chatId, title }) => {
       isMounted = false;
       window.clearInterval(intervalId);
     };
-  }, [chatId]);
+  }, [chatId, uid]);
 
   const sendMessage = async () => {
     const trimmedText = text.trim();
@@ -74,15 +115,15 @@ const Chat = ({ chatId, title }) => {
 
     try {
       setSending(true);
+      const headers = await getChatAuthHeaders();
       const response = await fetch(`${BASE_URL}/chats/${chatId}/messages`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          ...headers,
         },
         body: JSON.stringify({
           text: trimmedText,
-          user_id: uid,
-          username: displayName,
         }),
       });
 
@@ -115,7 +156,7 @@ const Chat = ({ chatId, title }) => {
         <div className="chat-header">
           <div>
             <p className="chat-eyebrow">Live Chat</p>
-            <h1>{title || "Group Chat"}</h1>
+            <h1>{chatTitle || "Conversation"}</h1>
           </div>
           <p className="chat-subtitle">
             Coordinate details here once you find a group that fits.

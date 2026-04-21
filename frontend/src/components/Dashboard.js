@@ -8,6 +8,7 @@ import "../styles/TaskRelatedStyles.css";
 import TaskForm from './task-components/TaskForm';
 import TaskList from './task-components/TaskList';
 import LoadingPage from "./LoadingPage";
+import { findOrCreateDirectChat } from "../utils/chat";
 
 // Number of items to show per page in the dashboard public posts sections
 const DASHBOARD_ITEMS_PER_PAGE = 10;
@@ -233,13 +234,27 @@ const Dashboard = () => {
         navigate(`/profile/${joinedUser.uid}`);
     };
 
-    const handleMessageJoinedUser = (joinedUser) => {
+    const handleMessageJoinedUser = async (joinedUser) => {
         if (!joinedUser?.uid) {
             alert("This user cannot be messaged right now.");
             return;
         }
 
-        alert("Messaging is currently a work in progress.");
+        try {
+            const { chatId, title } = await findOrCreateDirectChat(joinedUser.uid);
+            if (!chatId) {
+                throw new Error("Could not open the conversation.");
+            }
+
+            navigate(`/chat/${chatId}`, {
+                state: {
+                    title,
+                },
+            });
+        } catch (error) {
+            console.error("Error opening direct chat:", error);
+            alert(error.message || "Could not open the conversation right now.");
+        }
     };
 
     const handleReportJoinedUser = async (joinedUser) => {

@@ -3,6 +3,7 @@ import axios from "axios";
 import { useNavigate, useParams } from "react-router-dom";
 import { updateEmail, updateProfile, signOut } from "firebase/auth";
 import { auth } from "../firebase";
+import { findOrCreateDirectChat } from "../utils/chat";
 import "../styles/Profile.css";
 
 const formatCreatedAt = (value) => {
@@ -294,7 +295,28 @@ const ProfilePage = ({ currentUser }) => {
                   </button>
                 )}
                 {!isOwnProfile && (
-                  <button type="button">Message User (WIP)</button>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      try {
+                        const { chatId, title } = await findOrCreateDirectChat(userId);
+                        if (!chatId) {
+                          throw new Error("Could not open the conversation.");
+                        }
+
+                        navigate(`/chat/${chatId}`, {
+                          state: {
+                            title,
+                          },
+                        });
+                      } catch (err) {
+                        console.error("Message failed:", err);
+                        alert(err.message || "Could not open the conversation right now.");
+                      }
+                    }}
+                  >
+                    Message User
+                  </button>
                 )}
                 {!isOwnProfile && (
                   <button type="button" onClick={openReportModal}>
